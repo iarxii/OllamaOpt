@@ -74,5 +74,5 @@ Optimized for laptops and Intel GPUs:
 
 ### 1️⃣ Clone or download the project
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/iarxii/OllamaOpt
 cd OllamaOpt
