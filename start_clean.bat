@@ -41,27 +41,35 @@ ollama stop all >nul 2>&1
 REM =====================================================
 REM 2) Kill Ollama process if still running
 REM =====================================================
-timeout /t 2 >nul
-tasklist | findstr /i "ollama.exe" >nul
-if not errorlevel 1 (
+ping localhost -n 3 >nul
+tasklist /FI "IMAGENAME eq ollama.exe" 2>nul | find /i "ollama" >nul
+if errorlevel 1 (
+  echo [OK]  Ollama process stopped
+) else (
   echo [WARN] Ollama still running – forcing stop
   taskkill /f /im ollama.exe >nul 2>&1
-) else (
-  echo [OK]  Ollama process stopped
+  if not errorlevel 1 (
+    echo [OK]  Ollama forcefully terminated
+  ) else (
+    echo [WARN] Could not terminate ollama.exe (may already be stopped)
+  )
 )
 
 REM =====================================================
 REM 3) Wait for port to be free
 REM =====================================================
 echo [INFO] Waiting for port %OLLAMA_PORT% to be released...
-powershell -Command ^
-"for ($i=0; $i -lt 10; $i++) {
-  $c = Get-NetTCPConnection -LocalPort %OLLAMA_PORT% -ErrorAction SilentlyContinue
-  if (-not $c) { exit 0 }
-  Start-Sleep -Seconds 1
-}
-Write-Host 'Port still in use.'; exit 1" ^
-|| echo [WARN] Port %OLLAMA_PORT% still appears busy
+for /l %%i in (1,1,10) do (
+  netstat -ano | find ":%OLLAMA_PORT%" >nul 2>&1
+  if errorlevel 1 (
+    echo [OK]  Port %OLLAMA_PORT% is now free
+    goto :port_free
+  )
+  ping localhost -n 2 >nul
+)
+echo [WARN] Port %OLLAMA_PORT% may still be in use
+
+:port_free
 
 REM =====================================================
 REM 4) Archive logs (if any)
