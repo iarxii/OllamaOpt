@@ -11,6 +11,7 @@ set "OLLAMA_NUM_GPU=999"
 set "ZES_ENABLE_SYSMAN=1"
 set "SYCL_CACHE_PERSISTENT=1"
 set "OLLAMA_DEBUG=1"
+set "OLLAMA_INTEL_GPU=true"
 set "OLLAMA_LOG_LEVEL=debug"
 set "no_proxy=localhost,127.0.0.1"
 
@@ -44,6 +45,7 @@ echo OLLAMA_NUM_GPU=%OLLAMA_NUM_GPU%
 echo ZES_ENABLE_SYSMAN=%ZES_ENABLE_SYSMAN%
 echo SYCL_CACHE_PERSISTENT=%SYCL_CACHE_PERSISTENT%
 echo OLLAMA_DEBUG=%OLLAMA_DEBUG%
+echo OLLAMA_INTEL_GPU=%OLLAMA_INTEL_GPU%
 echo OLLAMA_LOG_LEVEL=%OLLAMA_LOG_LEVEL%
 echo.
 echo Waiting 3 seconds before startup to ensure port is free...
@@ -54,11 +56,19 @@ echo Check logs for details:
 echo   - logs\ollama-server.log
 echo   - logs\ollama-debug.log
 echo.
+echo ============================= WATCH THIS WINDOW =============================
+echo If an error appears below (e.g., 'bind', 'driver error'), that is the root cause.
+echo The server is running correctly if you see messages like 'Listening on...'
+echo If this window closes or returns to a prompt, the server has FAILED.
+echo ===========================================================================
+echo.
 
 REM =====================================================
 REM Start Ollama with full GPU offload
+REM We run this directly in the console (no log redirection) to see startup errors.
+REM All output will now appear in this window instead of being sent to log files.
 REM =====================================================
-ollama serve 1>> logs\ollama-server.log 2>> logs\ollama-debug.log
+ollama serve
 
 REM =====================================================
 REM ERROR HANDLING (only reached if 'ollama serve' fails on startup)

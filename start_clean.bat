@@ -41,19 +41,11 @@ ollama stop all >nul 2>&1
 REM =====================================================
 REM 2) Kill Ollama process if still running
 REM =====================================================
-ping localhost -n 3 >nul
-tasklist /FI "IMAGENAME eq ollama.exe" 2>nul | find /i "ollama" >nul
-if errorlevel 1 (
-  echo [OK]  Ollama process stopped
-) else (
-  echo [WARN] Ollama still running – forcing stop
-  taskkill /f /im ollama.exe >nul 2>&1
-  if not errorlevel 1 (
-    echo [OK]  Ollama forcefully terminated
-  ) else (
-    echo [WARN] Could not terminate ollama.exe (may already be stopped)
-  )
-)
+echo [INFO] Forcing termination of all Ollama processes...
+taskkill /f /im ollama.exe /t >nul 2>&1
+taskkill /f /im "ollama app.exe" /t >nul 2>&1
+ping localhost -n 2 >nul
+echo [OK] Ollama processes terminated.
 
 REM =====================================================
 REM 3) Wait for port to be free
