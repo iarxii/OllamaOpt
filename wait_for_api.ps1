@@ -1,5 +1,5 @@
 param(
-    [int]$MaxRetries = 10,
+    [int]$MaxRetries = 30,
     [int]$TimeoutSec = 2
 )
 

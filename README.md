@@ -87,7 +87,21 @@ ollama pull qwen3.5:9b
 ```
 Or use any compatible GGUF model (see Recommended Models above).
 
-### 4️⃣ Run the launcher
+### 4️⃣ Verify environment (optional but recommended)
+Before launching, run pre-flight checks:
+```bash
+preflight_checks.bat
+```
+
+This verifies:
+- ✅ Python is installed
+- ✅ Ollama is installed  
+- ✅ Port 11434 is free
+- ✅ Intel GPU is detected
+
+**If checks fail**, see Troubleshooting below for fixes.
+
+### 5️⃣ Run the launcher
 Double-click or run:
 ```bash
 start_dev.bat
@@ -345,15 +359,59 @@ Installed automatically by `start_dev.bat`
 ## 🐛 Troubleshooting
 
 ### Port 11434 Already in Use
-**Symptom**: "listen tcp 127.0.0.1:11434: bind: Only one usage..."
+**Symptom**: "listen tcp 127.0.0.1:11434: bind: Only one usage..." OR "Ollama did not respond in time"
 
-**Fix**:
+**Cause**: Ollama GUI, background service, or previous process is holding the port.
+
+**Fix - Quick**:
 ```bash
 kill_ollama.bat
 ```
 Then try again.
 
-### Model Not Found
+**Fix - Complete (if above doesn't work)**:
+
+1. **Check Task Manager** for Ollama processes:
+   - Press `Ctrl+Shift+Esc` (Task Manager)
+   - Look for `ollama.exe` or "Ollama" app
+   - Right-click → End Task
+
+2. **Stop Ollama service** (if installed as Windows service):
+   ```bash
+   sc stop ollama
+   ```
+
+3. **Force-kill all Ollama processes**:
+   ```bash
+   taskkill /f /im ollama.exe /t
+   ```
+
+4. **Wait for port release** (optional but safe):
+   ```bash
+   ping localhost -n 6 >nul
+   ```
+
+5. **Verify port is free**:
+   ```bash
+   netstat -ano | findstr ":11434"
+   ```
+   If no output appears, port is free.
+
+6. **Try again**:
+   ```bash
+   start_dev.bat
+   ```
+
+---
+
+### API Timeout During Benchmark
+**Symptom**: "Ollama did not respond in time" + empty `ollama-server.log`
+
+**Cause**: Ollama server failed to start (usually port conflict above)
+
+**Fix**: Follow "Port 11434 Already in Use" fixes above.
+
+---
 **Symptom**: "model 'qwen3.5:9b' not found"
 
 **Fix**: Pull the model first

@@ -25,24 +25,14 @@ echo MODEL=%MODEL% >> "%LOG_DIR%\env.txt"
 REM ================================
 REM TERMINAL 1: OLLAMA SERVER (LOGGED)
 REM ================================
-echo [INFO] Starting Ollama server...
-start "Ollama Server (Intel GPU + Logs)" cmd /k ^
-"(if exist %VENV_ACT% (call %VENV_ACT%) else (echo [WARN] Venv not found)) && ^
-set OLLAMA_NUM_GPU=999 && ^
-set ZES_ENABLE_SYSMAN=1 && ^
-set SYCL_CACHE_PERSISTENT=1 && ^
-set OLLAMA_DEBUG=1 && ^
-set OLLAMA_LOG_LEVEL=debug && ^
-set no_proxy=localhost,127.0.0.1 && ^
-echo === ENVIRONMENT === >> logs\env.txt && ^
-set >> logs\env.txt && ^
-echo Starting Ollama server - logs: logs\ollama-server.log && ^
-ollama serve 1>> logs\ollama-server.log 2>> logs\ollama-debug.log"
+echo [INFO] Starting Ollama server with Intel GPU optimization...
+start "Ollama Server (Intel GPU + Logs)" cmd /k "call start_ollama_server.bat"
 
 REM ================================
 REM WAIT FOR SERVER
 REM ================================
-ping localhost -n 6 >nul
+echo [INFO] Waiting for Ollama server to initialize (15 seconds)...
+ping localhost -n 16 >nul
 
 REM ================================
 REM TERMINAL 2: BENCHMARK RUNNER
