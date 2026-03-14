@@ -39,11 +39,11 @@ REM TERMINAL 2: BENCHMARK RUNNER
 REM ================================
 echo [INFO] Starting benchmark runner...
 start "Ollama Benchmark" cmd /k ^
-"(if exist %VENV_ACT% (call %VENV_ACT%) else (echo [WARN] Venv not found)) && ^
-set no_proxy=localhost,127.0.0.1 && ^
-echo Running ollamabench... && ^
-call run_wait_for_api.bat && ^
-python -m ollamabench.benchmark_runner %MODEL% --warmup-runs 2 > logs\benchmark-qwen39.txt && ^
+"(if exist %VENV_ACT% call %VENV_ACT%) & ^
+set no_proxy=localhost,127.0.0.1 & ^
+echo Running ollamabench... & ^
+call run_wait_for_api.bat & ^
+python -m ollamabench.benchmark_runner %MODEL% --warmup-runs 2 > logs\benchmark-qwen39.txt & ^
 echo Benchmark complete."
 
 REM ================================
@@ -53,8 +53,8 @@ ping localhost -n 4 >nul
 
 echo [INFO] Starting latency probe...
 start "Ollama Latency Probe" cmd /k ^
-"(if exist %VENV_ACT% (call %VENV_ACT%) else (echo [WARN] Venv not found)) && ^
-set no_proxy=localhost,127.0.0.1 && ^
+"(if exist %VENV_ACT% call %VENV_ACT%) & ^
+set no_proxy=localhost,127.0.0.1 & ^
 call run_latency_probe.bat -Model %MODEL% -OutputFile logs\curl-latency.log"
 
 echo.
