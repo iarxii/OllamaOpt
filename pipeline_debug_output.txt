@@ -1,0 +1,267 @@
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>setlocal EnableDelayedExpansion 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>title OllamaOpt - Single Pipeline Runner (DEBUG) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>cd /d "C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization\" 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo ===================================================== 
+=====================================================
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo OllamaOpt - Single Pipeline Runner (DEBUG) 
+OllamaOpt - Single Pipeline Runner (DEBUG)
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo ===================================================== 
+=====================================================
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set LOG_DIR=logs 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if not exist "logs" mkdir "logs" 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Launch Time: 2026/03/14 11:06:48,99  1>"logs\env.txt" 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo [STEP 1] Kill existing Ollama/python processes (best-effort) 
+[STEP 1] Kill existing Ollama/python processes (best-effort)
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>taskkill /f /im ollama.exe /t  1>nul 2>&1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>taskkill /f /im "ollama app.exe" /t  1>nul 2>&1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>taskkill /f /im python.exe /t  1>nul 2>&1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo [STEP 2] Ensure port 11434 is free 
+[STEP 2] Ensure port 11434 is free
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 1 
+DEBUG: loop iteration 1
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 1 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 1)... 
+Waiting for port to free (attempt 1)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 2 
+DEBUG: loop iteration 2
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 2 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 2)... 
+Waiting for port to free (attempt 2)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 3 
+DEBUG: loop iteration 3
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 3 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 3)... 
+Waiting for port to free (attempt 3)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 4 
+DEBUG: loop iteration 4
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 4 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 4)... 
+Waiting for port to free (attempt 4)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 5 
+DEBUG: loop iteration 5
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 5 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 5)... 
+Waiting for port to free (attempt 5)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 6 
+DEBUG: loop iteration 6
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 6 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 6)... 
+Waiting for port to free (attempt 6)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 7 
+DEBUG: loop iteration 7
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 7 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 7)... 
+Waiting for port to free (attempt 7)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 8 
+DEBUG: loop iteration 8
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 8 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 8)... 
+Waiting for port to free (attempt 8)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 9 
+DEBUG: loop iteration 9
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 9 GEQ 10 goto port_warn 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo Waiting for port to free (attempt 9)... 
+Waiting for port to free (attempt 9)...
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>set /a _port_try+=1 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>ping localhost -n 2  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>goto port_loop 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: loop iteration 10 
+DEBUG: loop iteration 10
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>netstat -ano   | findstr ":11434"  1>nul 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>echo DEBUG: findstr exitlevel=0 
+DEBUG: findstr exitlevel=0
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if errorlevel 1 (
+echo [OK] Port 11434 is free  
+ goto port_ready 
+) 
+
+(.venv) C:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization>if 10 GEQ 10 goto port_warn 
+The system cannot find the batch label specified - port_warn

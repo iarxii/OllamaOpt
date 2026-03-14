@@ -111,9 +111,17 @@ REM =====================================================
 REM 8) Run the launcher
 REM =====================================================
 echo.
-echo [GO] Launching: %LAUNCHER_BAT%
+rem Allow passing execution mode as first arg: single or multi (default: multi)
+if "%~1"=="" (
+  set "EXEC_MODE=multi"
+) else (
+  set "EXEC_MODE=%~1"
+)
+
 echo.
-call "%LAUNCHER_BAT%"
+echo [GO] Launching: %LAUNCHER_BAT% (Mode: %EXEC_MODE%)
+echo.
+call "%LAUNCHER_BAT%" %EXEC_MODE%
 
 REM Note: If the launcher opens new terminals, they may not inherit this venv.
 REM If you want them to, edit the launcher to activate %VENV_DIR%\Scripts\activate.bat

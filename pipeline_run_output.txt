@@ -1,0 +1,12 @@
+=====================================================
+OllamaOpt - Single Pipeline Runner
+=====================================================
+[STEP 1] Kill existing Ollama/python processes (best-effort)
+[STEP 2] Ensure port 11434 is free
+[OK] Port 11434 is free
+[STEP 3] Start Ollama server with GPU env and redirect logs
+[INFO] Waiting 8 seconds for server to initialize...
+[STEP 4] Wait for API health
+[STEP 5] Run benchmark (auto-skip upload) and capture output
+[STEP 6] Send validation prompt to API and save response
+<< was unexpected at this time.

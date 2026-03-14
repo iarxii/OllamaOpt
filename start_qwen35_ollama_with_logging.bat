@@ -38,13 +38,27 @@ REM ================================
 REM TERMINAL 2: BENCHMARK RUNNER
 REM ================================
 echo [INFO] Starting benchmark runner...
-start "Ollama Benchmark" cmd /k ^
-"(if exist %VENV_ACT% call %VENV_ACT%) & ^
-set no_proxy=localhost,127.0.0.1 & ^
-echo Running ollamabench... & ^
-call run_wait_for_api.bat & ^
-python -m ollamabench.benchmark_runner %MODEL% --warmup-runs 2 > logs\benchmark-qwen39.txt & ^
-echo Benchmark complete."
+rem If you want to *see* the upload prompt and answer it interactively,
+rem set environment variable SHOW_BENCH_PROMPT=1 before running this script.
+
+if "%SHOW_BENCH_PROMPT%"=="1" goto :bench_interactive
+goto :bench_auto
+
+:bench_interactive
+rem Run the benchmark inline so the interactive upload prompt appears in this console
+echo Running interactive benchmark in the current console...
+if exist %VENV_ACT% call %VENV_ACT%
+set no_proxy=localhost,127.0.0.1
+echo Running ollamabench...
+call run_wait_for_api.bat
+python -m ollamabench.benchmark_runner %MODEL% --warmup-runs 2
+echo Benchmark complete.
+goto :after_bench
+
+:bench_auto
+start "Ollama Benchmark" cmd /k "(if exist %VENV_ACT% call %VENV_ACT%) & set no_proxy=localhost,127.0.0.1 & echo Running ollamabench... & call run_wait_for_api.bat & echo n ^| python -m ollamabench.benchmark_runner %MODEL% --warmup-runs 2 > logs\benchmark-qwen39.txt & echo Benchmark complete."
+
+:after_bench
 
 REM ================================
 REM TERMINAL 3: CURL LATENCY PROBE

@@ -19,7 +19,7 @@ try {
             -Method Post `
             -Headers @{"Content-Type" = "application/json" } `
             -Body $payload `
-            -TimeoutSec 30 `
+            -TimeoutSec 120 `
             -ErrorAction Stop
     }
     
