@@ -12,44 +12,41 @@ echo ================================================
 echo.
 
 REM =====================================================
-REM 1) Graceful shutdown via CLI
+REM 1) Graceful shutdown via CLI (best effort)
 REM =====================================================
 echo [INFO] Attempting graceful Ollama shutdown...
 ollama stop all >nul 2>&1
+ping localhost -n 2 >nul
 
 REM =====================================================
-REM 2) Wait for graceful shutdown
+REM 2) Force kill all Ollama and related processes
 REM =====================================================
-ping localhost -n 3 >nul
+echo [INFO] Force-terminating all Ollama processes...
+taskkill /f /im ollama.exe /t >nul 2>&1
+taskkill /f /im "ollama app.exe" /t >nul 2>&1
+echo [OK]  Ollama processes terminated.
+ping localhost -n 2 >nul
 
 REM =====================================================
-REM 3) Check if ollama.exe is still running
+REM 3) Force kill launcher terminals and python
 REM =====================================================
-tasklist /FI "IMAGENAME eq ollama.exe" 2>nul | find /i "ollama" >nul
-if errorlevel 1 (
-  echo [OK]  Ollama gracefully stopped
-  goto :done
-)
+echo [INFO] Terminating launcher terminals...
+taskkill /f /im cmd.exe /fi "WINDOWTITLE eq Ollama Server (Intel GPU + Logs)" >nul 2>&1
+taskkill /f /im cmd.exe /fi "WINDOWTITLE eq Ollama Benchmark" >nul 2>&1
+taskkill /f /im cmd.exe /fi "WINDOWTITLE eq Ollama Latency Probe" >nul 2>&1
+taskkill /f /im cmd.exe /fi "WINDOWTITLE eq Ollama Intel GPU + Logging Launcher" >nul 2>&1
+taskkill /f /im python.exe /t >nul 2>&1
+echo [OK]  Launcher terminals terminated
+ping localhost -n 2 >nul
 
 REM =====================================================
-REM 4) Force kill ollama.exe if still running
-REM =====================================================
-echo [WARN] Ollama still running - forcing termination
-taskkill /f /im ollama.exe >nul 2>&1
-if errorlevel 0 (
-  echo [OK]  Ollama process forcefully terminated
-) else (
-  echo [WARN] Could not taskkill ollama.exe (may already be stopped)
-)
-
-REM =====================================================
-REM 5) Wait for port to be released
+REM 4) Wait for port to be released
 REM =====================================================
 echo [INFO] Waiting for port 11434 to be released...
 for /l %%i in (1,1,10) do (
   netstat -ano | find ":11434" >nul
   if errorlevel 1 (
-    echo [OK]  Port 11434 is now free
+    echo [OK]  Port 11434 is now free.
     goto :done
   )
   ping localhost -n 2 >nul
@@ -62,7 +59,7 @@ REM =====================================================
 :done
 echo.
 echo ================================================
-echo  Ollama processes killed
+echo  Kill process complete.
 echo ================================================
 echo.
 

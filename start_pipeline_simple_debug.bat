@@ -33,6 +33,7 @@ set /a _port_try=1
     set /a _port_try+=1
     ping localhost -n 2 >nul
     goto port_loop
+:port_warn
 echo [WARN] Port 11434 may be in use; continuing anyway
 :port_ready
 
@@ -64,17 +65,22 @@ if errorlevel 1 (
 )
 
 echo [STEP 6] Send validation prompt to API and save response
-python - <<PY > "%LOG_DIR%\test_prompt_response.json" 2>&1
-import json,urllib.request,sys
-payload=json.dumps({"model":"%MODEL%","prompt":"Return OK only.","stream":False}).encode()
-req=urllib.request.Request('http://localhost:11434/api/generate', data=payload, headers={'Content-Type':'application/json'})
-try:
-    resp=urllib.request.urlopen(req, timeout=60)
-    print(resp.read().decode())
-except Exception as e:
-    print('PROMPT_ERROR:', e)
-    sys.exit(1)
-PY
+set "_pyfile=%TEMP%\ollama_test_prompt.py"
+> "%_pyfile%" echo import json,urllib.request,sys
+>> "%_pyfile%" echo payload=json.dumps({"model":"%MODEL%","prompt":"Return OK only.","stream":False}).encode()
+>> "%_pyfile%" echo req=urllib.request.Request('http://localhost:11434/api/generate', data=payload, headers={'Content-Type':'application/json'})
+>> "%_pyfile%" echo try:
+>> "%_pyfile%" echo     resp=urllib.request.urlopen(req, timeout=300)
+>> "%_pyfile%" echo     print(resp.read().decode())
+>> "%_pyfile%" echo except Exception as e:
+>> "%_pyfile%" echo     print('PROMPT_ERROR:', e)
+>> "%_pyfile%" echo     sys.exit(1)
+python "%_pyfile%" > "%LOG_DIR%\test_prompt_response.json" 2>&1
+set "_pyret=%ERRORLEVEL%"
+del "%_pyfile%" >nul 2>&1
+if %_pyret% NEQ 0 (
+    echo [ERROR] Validation prompt failed; see %LOG_DIR%\test_prompt_response.json
+)
 
 echo [STEP 7] Run latency probe
 call run_latency_probe.bat -Model %MODEL% -OutputFile "%LOG_DIR%\curl-latency.log"

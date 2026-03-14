@@ -22,6 +22,20 @@ if exist ".venv\Scripts\activate.bat" (
 )
 
 REM =====================================================
+REM Pre-flight check for Ollama executable
+REM =====================================================
+where ollama >nul 2>&1
+if errorlevel 1 (
+  echo.
+  echo [FATAL ERROR] 'ollama.exe' not found in your system's PATH.
+  echo Please ensure Ollama is installed correctly and your PATH is configured.
+  echo You can download Ollama from: https://ollama.com
+  echo.
+  pause
+  exit /b 1
+)
+
+REM =====================================================
 REM Log environment
 REM =====================================================
 echo === OLLAMA SERVER START ===
@@ -35,9 +49,37 @@ echo.
 echo Waiting 3 seconds before startup to ensure port is free...
 ping localhost -n 4 >nul
 echo Starting Ollama serve...
+echo If this window returns to a command prompt, the server has failed to start.
+echo Check logs for details:
+echo   - logs\ollama-server.log
+echo   - logs\ollama-debug.log
 echo.
 
 REM =====================================================
 REM Start Ollama with full GPU offload
 REM =====================================================
 ollama serve 1>> logs\ollama-server.log 2>> logs\ollama-debug.log
+
+REM =====================================================
+REM ERROR HANDLING (only reached if 'ollama serve' fails on startup)
+REM =====================================================
+if errorlevel 1 (
+  echo.
+  echo =================================================================
+  echo [FATAL ERROR] Ollama server failed to start or has crashed!
+  echo =================================================================
+  echo.
+  echo This can happen for several reasons:
+  echo   1. Another Ollama instance is already running (check port 11434).
+  echo   2. A critical error occurred (e.g., driver issue, corrupted model).
+  echo.
+  echo Please check the following log files for detailed error messages:
+  echo   - "logs\ollama-server.log"
+  echo   - "logs\ollama-debug.log"
+  echo.
+  echo You can use 'kill_ollama.bat' to stop any lingering processes
+  echo and then try running 'start_clean.bat' for a fresh start.
+  echo.
+)
+
+pause

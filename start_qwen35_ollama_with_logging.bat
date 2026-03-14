@@ -13,6 +13,7 @@ REM ================================
 set "MODEL=qwen3.5:9b"
 set "VENV_ACT=.venv\Scripts\activate.bat"
 set "LOG_DIR=logs"
+set "LOG_MODEL_NAME=%MODEL::=_%"
 
 REM ================================
 REM PREP LOGGING
@@ -27,12 +28,6 @@ REM TERMINAL 1: OLLAMA SERVER (LOGGED)
 REM ================================
 echo [INFO] Starting Ollama server with Intel GPU optimization...
 start "Ollama Server (Intel GPU + Logs)" cmd /k "call start_ollama_server.bat"
-
-REM ================================
-REM WAIT FOR SERVER
-REM ================================
-echo [INFO] Waiting for Ollama server to initialize (15 seconds)...
-ping localhost -n 16 >nul
 
 REM ================================
 REM TERMINAL 2: BENCHMARK RUNNER
@@ -56,19 +51,19 @@ echo Benchmark complete.
 goto :after_bench
 
 :bench_auto
-start "Ollama Benchmark" cmd /k "(if exist %VENV_ACT% call %VENV_ACT%) & set no_proxy=localhost,127.0.0.1 & echo Running ollamabench... & call run_wait_for_api.bat & echo n ^| python -m ollamabench.benchmark_runner %MODEL% --warmup-runs 2 > logs\benchmark-qwen39.txt & echo Benchmark complete."
+start "Ollama Benchmark" cmd /k "(if exist %VENV_ACT% call %VENV_ACT%) & set no_proxy=localhost,127.0.0.1 & echo Running ollamabench... & call run_wait_for_api.bat & (echo n | python -m ollamabench.benchmark_runner %MODEL% --warmup-runs 2 > ""%LOG_DIR%\benchmark-%LOG_MODEL_NAME%.txt"" 2>&1) & echo Benchmark complete."
 
 :after_bench
 
 REM ================================
 REM TERMINAL 3: CURL LATENCY PROBE
 REM ================================
-ping localhost -n 4 >nul
-
 echo [INFO] Starting latency probe...
 start "Ollama Latency Probe" cmd /k ^
 "(if exist %VENV_ACT% call %VENV_ACT%) & ^
 set no_proxy=localhost,127.0.0.1 & ^
+echo Waiting for API before probing latency... & ^
+call run_wait_for_api.bat & ^
 call run_latency_probe.bat -Model %MODEL% -OutputFile logs\curl-latency.log"
 
 echo.
