@@ -71,7 +71,7 @@ REM 5) Ensure required Python packages are installed
 REM =====================================================
 echo [INFO] Checking required Python packages...
 for %%P in (%REQUIRED_PY_PKGS%) do (
-  python -c "import importlib,sys; sys.exit(0 if importlib.util.find_spec('%%P') else 1)" >nul 2>&1
+  python -m pip show %%P >nul 2>&1
   if errorlevel 1 (
     echo [INFO] Installing missing package: %%P
     python -m pip install "%%P"

@@ -46,21 +46,14 @@ if errorlevel 1 (
   taskkill /f /im ollama.exe >nul 2>&1
   taskkill /f /im "ollama app.exe" >nul 2>&1
   
-  REM Wait for port to release (up to 10 seconds)
-  set PORT_FREED=0
+  REM Wait for port to release with simple ping delays
   echo        Waiting for port to release...
-  for /l %%i in (1,1,10) do (
-    if !PORT_FREED! EQU 0 (
-      timeout /t 1 >nul
-      netstat -ano > "%temp%\netstat.txt" 2>nul
-      findstr ":11434" "%temp%\netstat.txt" >nul 2>&1
-      if errorlevel 1 (
-        echo [OK]   Port 11434 is now available
-        set PORT_FREED=1
-      )
-    )
-  )
-  if !PORT_FREED! EQU 0 (
+  ping localhost -n 5 >nul 2>&1
+  netstat -ano > "%temp%\netstat.txt" 2>nul
+  findstr ":11434" "%temp%\netstat.txt" >nul 2>&1
+  if errorlevel 1 (
+    echo [OK]   Port 11434 is now available
+  ) else (
     echo [FAIL] Port 11434 still in use after timeout
     set /a FAIL_COUNT=FAIL_COUNT+1
   )
