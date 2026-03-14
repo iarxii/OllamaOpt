@@ -112,10 +112,13 @@ echo.
 echo Logs archived under:
 echo   %ARCHIVE_ROOT%
 echo.
-echo Next steps:
-echo   1) Review / zip archived logs if needed
-echo   2) Run start_dev.bat for a clean session
+echo Press any key to start the dev environment...
 echo.
 
 endlocal
 pause
+
+REM =====================================================
+REM Auto-launch dev environment
+REM =====================================================
+start_dev.bat
