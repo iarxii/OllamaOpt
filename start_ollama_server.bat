@@ -65,10 +65,16 @@ echo.
 
 REM =====================================================
 REM Start Ollama with full GPU offload
-REM We run this directly in the console (no log redirection) to see startup errors.
-REM All output will now appear in this window instead of being sent to log files.
+REM If OLLAMA_DEBUG_INTERACTIVE is set to 1, run directly in the console.
+REM Otherwise, redirect to a log file for unattended runs.
 REM =====================================================
-ollama serve
+if "%OLLAMA_DEBUG_INTERACTIVE%"=="1" (
+  echo [INFO] Running in INTERACTIVE debug mode. Output will appear below.
+  ollama serve
+) else (
+  if not exist "logs" mkdir "logs"
+  ollama serve > "logs\ollama_server.log" 2>&1
+)
 
 REM =====================================================
 REM ERROR HANDLING (only reached if 'ollama serve' fails on startup)
