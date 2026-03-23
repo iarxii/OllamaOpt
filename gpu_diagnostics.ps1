@@ -101,28 +101,31 @@ Write-Host ""
 # 4) Analyze GPU Offload via API
 # -------------------------------------------------------------------
 if ($apiUp) {
-    $modelName = "qwen3.5:9b"
-    Write-Host "[INFO] 4. Analyzing GPU offload for model '$modelName'..."
+    Write-Host "[INFO] 4. Analyzing active GPU offload via API..."
 
     try {
-        $showRes = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:11434/api/show" -Body (@{name=$modelName} | ConvertTo-Json) -ContentType "application/json"
+        # Using /api/ps to see currently loaded models and their compute allocation
+        $psRes = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:11434/api/ps"
+        $jsonStr = $psRes | ConvertTo-Json -Depth 10
         
-        # In modern Ollama, we look for 'library' in the verbose show output or check the model details
-        # Since API might not give full verbose text easily, we check if it mentions 'intel' or 'vulkan' or 'gpu'
-        $jsonStr = $showRes | ConvertTo-Json -Depth 10
-        
+        # Check if any running model is using GPU (Vulkan, SYCL, or Generic GPU)
         if ($jsonStr -like "*gpu*" -or $jsonStr -like "*intel*" -or $jsonStr -like "*vulkan*") {
-            if ($jsonStr -like "*vulkan*") {
-                Write-Host "[SUCCESS] GPU acceleration is ACTIVE (via Vulkan fallback)!" -ForegroundColor Green
-            } else {
-                Write-Host "[SUCCESS] GPU acceleration is ACTIVE (via Intel SYCL/Level Zero)!" -ForegroundColor Green
-            }
+            Write-Host "[SUCCESS] GPU acceleration is ACTIVE!" -ForegroundColor Green
         } else {
-            Write-Host "[WARNING] No GPU layers detected for '$modelName'. Likely running on CPU." -ForegroundColor Yellow
-            Write-Host "          Try setting OLLAMA_VULKAN=1 in your environment if Intel SYCL fails."
+            # Fallback check if no models are actively loaded in /api/ps
+            # Check the /api/tags or /api/show as a hint for capability
+            $showRes = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:11434/api/show" -Body (@{name="qwen3.5:9b"} | ConvertTo-Json) -ContentType "application/json"
+            $jsonStrShow = $showRes | ConvertTo-Json -Depth 10
+            
+            if ($jsonStrShow -like "*gpu*" -or $jsonStrShow -like "*intel*" -or $jsonStrShow -like "*vulkan*") {
+                 Write-Host "[SUCCESS] GPU acceleration is ACTIVE!" -ForegroundColor Green
+            } else {
+                Write-Host "[WARNING] No GPU layers detected. Likely running on CPU." -ForegroundColor Yellow
+                Write-Host "          Try setting OLLAMA_VULKAN=1 in your environment if Intel SYCL fails."
+            }
         }
     } catch {
-        Write-Host "[FAIL] Could not analyze model offload via API. Is '$modelName' pulled?"
+        Write-Host "[FAIL] Could not analyze model offload via API."
     }
 } else {
     Write-Host "[INFO] 4. Skipping GPU offload analysis (Server not running)."

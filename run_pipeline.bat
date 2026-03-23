@@ -53,7 +53,7 @@ REM 4. Check Diagnostics Result and Report
 REM ======================================================
 echo [INFO] Analyzing diagnostics results...
 
-findstr /C:"[PASS] GPU offload is ACTIVE!" "logs\gpu_diagnostics.log" >nul
+findstr /C:"[SUCCESS] GPU acceleration is ACTIVE!" "logs\gpu_diagnostics.log" >nul
 if !errorlevel! equ 0 (
     echo(
     echo =================================================================
