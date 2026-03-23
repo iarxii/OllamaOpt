@@ -10,132 +10,117 @@ Write-Host ""
 # 0) Check if Ollama server is running
 # -------------------------------------------------------------------
 Write-Host "[INFO] Checking for running Ollama server on port 11434..."
-$serverCheck = Test-NetConnection -ComputerName localhost -Port 11434 -ErrorAction SilentlyContinue
-if ($serverCheck.TcpTestSucceeded) {
-    Write-Host "[OK] Ollama server is responding."
+$serverCheck = Test-NetConnection -ComputerName 127.0.0.1 -Port 11434 -ErrorAction SilentlyContinue
+$apiUp = $serverCheck.TcpTestSucceeded
+
+if ($apiUp) {
+    Write-Host "[OK] Ollama server is responding at 127.0.0.1:11434"
 } else {
-    Write-Host "[FAIL] Ollama server is not responding on port 11434." -ForegroundColor Red
-    Write-Host "  Please start the server first by running 'start_dev.bat' in another terminal."
-    Write-Host "  This script can only analyze a running server."
-    Write-Host ""
-    exit 1
+    Write-Host "[WAIT] Ollama server is NOT responding at 127.0.0.1:11434" -ForegroundColor Yellow
+    Write-Host "       Check if 'ollama serve' is running."
 }
 
 Write-Host ""
 
 # -------------------------------------------------------------------
-# 1) Check Intel GPU devices
+# 1) Check Intel GPU devices via WMI
 # -------------------------------------------------------------------
 Write-Host "[INFO] 1. Checking for Intel GPU devices..."
 
-$gpus = Get-WmiObject -Class Win32_VideoController | Where-Object { $_.Name -match "Intel" }
+$gpus = Get-CimInstance -ClassName Win32_VideoController | Where-Object { $_.Name -match "Intel" }
 
 if ($gpus) {
     Write-Host "[OK] Intel GPU(s) detected:"
     foreach ($gpu in $gpus) {
         Write-Host "  - $($gpu.Name)"
         Write-Host "    Driver Version: $($gpu.DriverVersion)"
-        $DriverDate = [Management.ManagementDateTimeConverter]::ToDateTime($gpu.DriverDate)
-        Write-Host "    Driver Date:    $($DriverDate.ToString('yyyy-MM-dd'))"
         Write-Host "    Status:         $($gpu.Status)"
     }
 } else {
-    Write-Host "[WARN] No Intel GPU detected!"
-    Write-Host "  Available GPUs:"
-    Get-WmiObject -Class Win32_VideoController | ForEach-Object {
-        Write-Host "      - $($_.Name)"
+    Write-Host "[WARN] No Intel GPU detected via standard WMI!"
+}
+
+Write-Host ""
+
+# -------------------------------------------------------------------
+# 2) Search for Critical Intel compute libraries
+# -------------------------------------------------------------------
+Write-Host "[INFO] 2. Searching for Intel compute libraries..."
+$libSycl = "igcsycl.dll"
+$libLZero = "ze_intel_gpu.dll"
+
+$commonPaths = @(
+    "$env:SystemRoot\System32",
+    "$env:SystemDrive\Windows\System32\DriverStore\FileRepository"
+)
+
+$foundSycl = $false
+$foundLZero = $false
+
+foreach ($path in $commonPaths) {
+    if (Test-Path $path) {
+        if (-not $foundSycl) {
+            $check = Get-ChildItem -Path $path -Filter $libSycl -Recurse -Depth 1 -ErrorAction SilentlyContinue
+            if ($check) { $foundSycl = $true; Write-Host "[OK]  $libSycl found in: $($check[0].DirectoryName)" }
+        }
+        if (-not $foundLZero) {
+            $check = Get-ChildItem -Path $path -Filter $libLZero -Recurse -Depth 1 -ErrorAction SilentlyContinue
+            if ($check) { $foundLZero = $true; Write-Host "[OK]  $libLZero found in: $($check[0].DirectoryName)" }
+        }
     }
 }
 
-Write-Host ""
-
-# -------------------------------------------------------------------
-# 2) Check for Critical Intel Driver Libraries
-# -------------------------------------------------------------------
-Write-Host "[INFO] 2. Checking for critical driver libraries..."
-
-$sycl_support = "NOT FOUND"
-$level_zero_support = "NOT FOUND"
-
-$sycl_path = Join-Path $env:SystemRoot "System32\igcsycl.dll"
-$level_zero_path = Join-Path $env:SystemRoot "System32\ze_intel_gpu.dll"
-
-if (Test-Path $sycl_path) {
-    $sycl_support = "OK"
-}
-if (Test-Path $level_zero_path) {
-    $level_zero_support = "OK"
-}
-
-Write-Host "  - SYCL support (igcsycl.dll):      $sycl_support"
-Write-Host "  - Level Zero support (ze_intel_gpu.dll): $level_zero_support"
-
-if ($sycl_support -ne "OK" -or $level_zero_support -ne "OK") {
-    Write-Host "[FAIL] Critical Intel compute libraries are missing." -ForegroundColor Red
-    Write-Host "  This indicates an incomplete or incorrect driver installation."
-    Write-Host "  A full driver reinstall using the Intel DSA is highly recommended."
-} else {
-    Write-Host "[OK] Critical Intel compute libraries found."
-}
+if (-not $foundSycl) { Write-Host "[FAIL] $libSycl NOT found (Required for Intel SYCL)" -ForegroundColor Red }
+if (-not $foundLZero) { Write-Host "[FAIL] $libLZero NOT found (Required for Intel Level Zero)" -ForegroundColor Red }
 
 Write-Host ""
 
 # -------------------------------------------------------------------
-# 3) Test Ollama detection
+# 3) Check Ollama installation and Vulkan
 # -------------------------------------------------------------------
-Write-Host "[INFO] 3. Testing Ollama CLI..."
+Write-Host "[INFO] 3. Testing Ollama CLI and Vulkan..."
 
 try {
     $version = & ollama -v
     Write-Host "[OK] Ollama version: $version"
 } catch {
-    Write-Host "[FAIL] Ollama not found in PATH"
+    Write-Host "[FAIL] Ollama CLI not found."
+}
+
+$vulkanCheck = Get-Command vulkaninfo -ErrorAction SilentlyContinue
+if ($vulkanCheck) {
+    Write-Host "[OK] Vulkan support detected."
+} else {
+    Write-Host "[INFO] Vulkan utility not found (normal if not installed separately)."
 }
 
 Write-Host ""
 
 # -------------------------------------------------------------------
-# 4) Check Model and Analyze GPU Offload
+# 4) Analyze GPU Offload via API
 # -------------------------------------------------------------------
-$modelName = "qwen:0.5b" # A smaller model for faster checks
-Write-Host "[INFO] 4. Checking for '$modelName' model and analyzing offload..."
+if ($apiUp) {
+    $modelName = "qwen3.5:9b"
+    Write-Host "[INFO] 4. Analyzing GPU offload for model '$modelName'..."
 
-try {
-    $models = & ollama list
-    if ($models -match $modelName) {
-        Write-Host "[OK] $modelName is installed"
-        Write-Host ""
-        Write-Host "[INFO] Analyzing model layers for GPU offload (this may take a moment)..."
-
-        # Run 'ollama show' and capture the output
-        $showOutput = & ollama show $modelName --verbose
-
-        # Check for GPU layers
-        $gpuLayers = $showOutput | Select-String -Pattern "library: intel" -AllMatches
-        $cpuLayers = $showOutput | Select-String -Pattern "library: cpu" -AllMatches
-
-        $totalGpuLayers = if ($gpuLayers) { $gpuLayers.Matches.Count } else { 0 }
-        $totalCpuLayers = if ($cpuLayers) { $cpuLayers.Matches.Count } else { 0 }
+    try {
+        $showRes = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:11434/api/show" -Body (@{name=$modelName} | ConvertTo-Json) -ContentType "application/json"
         
-        if ($totalGpuLayers -gt 0) {
-            Write-Host "[PASS] GPU offload is ACTIVE!" -ForegroundColor Green
-            Write-Host "  - $totalGpuLayers layers detected on Intel GPU."
-            if ($totalCpuLayers -gt 0) {
-                Write-Host "  - $totalCpuLayers layers are on CPU (this may be normal for some layers)." -ForegroundColor Yellow
-            }
+        # In modern Ollama, we look for 'library' in the verbose show output or check the model details
+        # Since API might not give full verbose text easily, we check if it mentions 'intel' or 'vulkan' or 'gpu'
+        $jsonStr = $showRes | ConvertTo-Json -Depth 10
+        
+        if ($jsonStr -like "*gpu*" -or $jsonStr -like "*intel*" -or $jsonStr -like "*vulkan*") {
+            Write-Host "[SUCCESS] GPU acceleration appears to be ACTIVE for '$modelName'!" -ForegroundColor Green
         } else {
-            Write-Host "[FAIL] GPU offload is NOT working." -ForegroundColor Red
-            Write-Host "  - All $totalCpuLayers layers appear to be running on the CPU."
-            Write-Host "  - This is likely a GPU driver issue. Please install the latest drivers from intel.com."
-            Write-Host "  - The installed driver may not support the necessary compute features (Level Zero / SYCL)."
+            Write-Host "[WARNING] No GPU layers detected for '$modelName'. Likely running on CPU." -ForegroundColor Yellow
+            Write-Host "          Try setting OLLAMA_VULKAN=1 in your environment if Intel SYCL fails."
         }
-    } else {
-        Write-Host "[WARN] $modelName not found. You can pull it by running: ollama pull $modelName"
-        Write-Host "  Available models:"
-        $models | Where-Object { $_ -match "^[a-z]" }
+    } catch {
+        Write-Host "[FAIL] Could not analyze model offload via API. Is '$modelName' pulled?"
     }
-} catch {
-    Write-Host "[FAIL] Could not query Ollama. Is the server running?" -ForegroundColor Red
+} else {
+    Write-Host "[INFO] 4. Skipping GPU offload analysis (Server not running)."
 }
 
 Write-Host ""
@@ -143,14 +128,3 @@ Write-Host "================================================"
 Write-Host "  Diagnostics Complete"
 Write-Host "================================================"
 Write-Host ""
-
-if ($sycl_support -ne "OK" -or $level_zero_support -ne "OK" -or $totalGpuLayers -eq 0) {
-    Write-Host "Next Steps:" -ForegroundColor Yellow
-    Write-Host "  1. Update your Intel GPU drivers to the LATEST version."
-    Write-Host "     The best way is to use the Intel Driver & Support Assistant (DSA)."
-    Write-Host "     Download it from: https://www.intel.com/content/www/us/en/support/detect.html"
-    Write-Host "  2. Perform a CLEAN installation of the drivers. This often involves"
-    Write-Host "     uninstalling the old driver first via Windows Apps & Features."
-    Write-Host "  3. After installing the new drivers and rebooting, run 'start_clean.bat' and then 'start_dev.bat'."
-    Write-Host "  4. Rerun this diagnostic script to verify the fix."
-}

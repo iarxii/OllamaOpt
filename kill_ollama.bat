@@ -22,8 +22,8 @@ REM =====================================================
 REM 2) Force kill all Ollama and related processes
 REM =====================================================
 echo [INFO] Force-terminating all Ollama processes...
-taskkill /f /im ollama.exe /t >nul 2>&1
-taskkill /f /im "ollama app.exe" /t >nul 2>&1
+taskkill.exe /f /im ollama.exe /t >nul 2>&1
+taskkill.exe /f /im "ollama app.exe" /t >nul 2>&1
 echo [OK]  Ollama processes terminated.
 ping localhost -n 2 >nul
 
@@ -44,11 +44,12 @@ REM 4) Wait for port to be released
 REM =====================================================
 echo [INFO] Waiting for port 11434 to be released...
 for /l %%i in (1,1,10) do (
-  netstat -ano | find ":11434" >nul
+  netstat -ano | findstr ":11434" >nul
   if errorlevel 1 (
     echo [OK]  Port 11434 is now free.
     goto :done
   )
+  echo [INFO] Port 11434 still in use, waiting (%%i/10)...
   ping localhost -n 2 >nul
 )
 echo [WARN] Port 11434 may still be in use

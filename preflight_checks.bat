@@ -3,11 +3,11 @@ setlocal enabledelayedexpansion
 title OllamaOpt - Pre-flight Checks
 cd /d "%~dp0"
 
-echo.
+echo(
 echo ================================================
 echo  OllamaOpt - Pre-flight Checks
 echo ================================================
-echo.
+echo(
 
 set FAIL_COUNT=0
 
@@ -20,7 +20,7 @@ if errorlevel 1 (
 ) else (
   echo [OK]   Python is installed
 )
-echo.
+echo(
 
 REM Check 2: Ollama
 echo [CHECK 2/4] Ollama installation...
@@ -31,7 +31,7 @@ if errorlevel 1 (
 ) else (
   echo [OK]   Ollama is installed
 )
-echo.
+echo(
 
 REM Check 3: Port 11434 - kill Ollama if in use
 echo [CHECK 3/4] Port 11434 availability...
@@ -59,7 +59,7 @@ if errorlevel 1 (
   )
 )
 if exist "%temp%\netstat.txt" del "%temp%\netstat.txt"
-echo.
+echo(
 
 REM Check 4: Intel GPU
 echo [CHECK 4/4] Intel GPU detection...
@@ -71,13 +71,13 @@ if %GPU_CHECK% EQU 0 (
   echo [WARN] Intel GPU not detected
 )
 
-echo.
+echo(
 echo ================================================
-echo.
+echo(
 
 if %FAIL_COUNT% EQU 0 (
   echo All checks passed - launching start_dev.bat...
-  echo.
+  echo(
   call start_dev.bat
 ) else (
   echo Checks failed: %FAIL_COUNT% issue(s) found

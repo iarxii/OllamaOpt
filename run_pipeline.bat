@@ -4,17 +4,17 @@ cd /d "%~dp0"
 
 title OllamaOpt - Smart Pipeline Runner
 
-echo.
+echo(
 echo ======================================================
 echo   OllamaOpt - Smart Pipeline Runner
 echo ======================================================
-echo.
+echo(
 echo This script will:
 echo   1. Start the full Ollama application pipeline.
 echo   2. Wait for the server to initialize.
 echo   3. Run GPU diagnostics to verify offload is working.
 echo   4. Report success or failure.
-echo.
+echo(
 
 REM ======================================================
 REM 1. Start the application using the existing dev script
@@ -31,15 +31,15 @@ REM Give it a few seconds to start the new terminals
 ping localhost -n 10 >nul
 call run_wait_for_api.bat
 if !errorlevel! neq 0 (
-    echo.
+    echo(
     echo [FATAL ERROR] The Ollama server did not become available.
     echo Please check the "Ollama Server" window for startup errors.
-    echo.
+    echo(
     pause
     exit /b 1
 )
 echo [OK] Ollama server is online.
-echo.
+echo(
 
 REM ======================================================
 REM 3. Run GPU Diagnostics
@@ -55,29 +55,29 @@ echo [INFO] Analyzing diagnostics results...
 
 findstr /C:"[PASS] GPU offload is ACTIVE!" "logs\gpu_diagnostics.log" >nul
 if !errorlevel! equ 0 (
-    echo.
+    echo(
     echo =================================================================
     echo  [SUCCESS] GPU Offload is ACTIVE and Verified!
     echo =================================================================
-    echo.
+    echo(
     echo The application is now running. Check the other terminals for:
     echo   - "Ollama Server"
     echo   - "Ollama Benchmark"
     echo   - "Ollama Latency Probe"
-    echo.
+    echo(
 ) else (
-    echo.
+    echo(
     echo [FATAL ERROR] GPU offload is NOT working or could not be verified.
     echo =================================================================
     echo Please check the log file for details:
     echo   c:\AppDev\OllamaOpt - Local LLM Intel GPU Optimization\logs\gpu_diagnostics.log
-    echo.
+    echo(
     echo The most likely cause is an Intel GPU driver issue.
     echo See the "Next Steps" in the log for recommendations.
-    echo.
+    echo(
     echo [ACTION] Terminating the server to prevent running in a broken state.
     echo =================================================================
-    echo.
+    echo(
     call kill_ollama.bat
 )
 
