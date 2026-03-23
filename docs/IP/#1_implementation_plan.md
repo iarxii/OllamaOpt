@@ -8,7 +8,7 @@ The user is encountering a Windows Batch parser error: `. was unexpected at this
 
 #### [MODIFY] [kill_ollama.bat](file:///c:/AppDev/OllamaOpt%20-%20Local%20LLM%20Intel%20GPU%20Optimization/kill_ollama.bat)
 - Fix the `FOR` loop syntax on line 46-54. The parenthesis in the `echo` statement `(%%i/10)` must be escaped or the string must be quoted to prevent the parser from closing the `DO (` block prematurely.
-- Replace all `echo.` with `echo(` for consistency and robustness.
+- Replace all `` with `echo(` for consistency and robustness.
 
 ### GPU Diagnostics Improvements
 

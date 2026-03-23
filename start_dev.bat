@@ -19,12 +19,12 @@ set "PYTHON_EXE=python"
 set "REQUIRED_PY_PKGS=ollamabench"
 set "LAUNCHER_BAT=%ROOT%start_qwen35_ollama_with_logging.bat"
 
-echo.
+
 echo ================================================
 echo  OllamaOpt Dev Startup + Preflight
 echo  Root: %ROOT%
 echo ================================================
-echo.
+
 
 REM =====================================================
 REM 1) Preflight: Python present?
@@ -110,7 +110,7 @@ if not exist "%LAUNCHER_BAT%" (
 REM =====================================================
 REM 8) Run the launcher
 REM =====================================================
-echo.
+
 rem Allow passing execution mode as first arg: single or multi (default: multi)
 if "%~1"=="" (
   set "EXEC_MODE=multi"
@@ -118,9 +118,9 @@ if "%~1"=="" (
   set "EXEC_MODE=%~1"
 )
 
-echo.
+
 echo [GO] Launching: %LAUNCHER_BAT% (Mode: %EXEC_MODE%)
-echo.
+
 call "%LAUNCHER_BAT%" %EXEC_MODE%
 
 REM Note: If the launcher opens new terminals, they may not inherit this venv.

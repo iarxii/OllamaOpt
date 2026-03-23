@@ -66,12 +66,12 @@ echo Waiting for API before probing latency... & ^
 call run_wait_for_api.bat & ^
 call run_latency_probe.bat -Model %MODEL% -OutputFile logs\curl-latency.log"
 
-echo.
+
 echo ================================================
 echo Ollama launcher started!
 echo ================================================
-echo.
+
 echo Logs available in: logs\
-echo.
+
 
 exit

@@ -1,0 +1,15 @@
+docs/.gitignore
+docs/IP/#1_implementation_plan.md
+docs/Screenshot 2026-03-23 212946.png
+docs/utils/.gitignore
+docs/utils/README.md
+dxdiag_output.txt
+gpu_diagnostics.bat
+gpu_diagnostics.ps1
+kill_ollama.bat
+preflight_checks.bat
+repro.bat
+run_pipeline.bat
+start_ollama_server.bat
+test_if.bat
+wait_for_api.ps1

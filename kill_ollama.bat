@@ -5,11 +5,7 @@ title OllamaOpt - Kill Ollama Processes
 REM =====================================================
 REM Kill Ollama Processes
 REM =====================================================
-echo.
-echo ================================================
-echo  OllamaOpt - Kill Ollama Processes
-echo ================================================
-echo.
+echo(
 
 REM =====================================================
 REM 1) Graceful shutdown via CLI (best effort)
@@ -49,7 +45,7 @@ for /l %%i in (1,1,10) do (
     echo [OK]  Port 11434 is now free.
     goto :done
   )
-  echo [INFO] Port 11434 still in use, waiting (%%i/10)...
+  echo [INFO] Port 11434 still in use, waiting ^(%%i/10^)...
   ping localhost -n 2 >nul
 )
 echo [WARN] Port 11434 may still be in use
@@ -58,11 +54,11 @@ REM =====================================================
 REM Done
 REM =====================================================
 :done
-echo.
+echo(
 echo ================================================
 echo  Kill process complete.
 echo ================================================
-echo.
+echo(
 
 endlocal
 pause

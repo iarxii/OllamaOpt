@@ -32,7 +32,7 @@ if errorlevel 1 (
   echo [FATAL ERROR] 'ollama.exe' not found in your system's PATH.
   echo Please ensure Ollama is installed correctly and your PATH is configured.
   echo You can download Ollama from: https://ollama.com
-  echo.
+  
   pause
   exit /b 1
 )

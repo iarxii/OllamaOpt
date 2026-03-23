@@ -60,11 +60,12 @@ $foundLZero = $false
 foreach ($path in $commonPaths) {
     if (Test-Path $path) {
         if (-not $foundSycl) {
-            $check = Get-ChildItem -Path $path -Filter $libSycl -Recurse -Depth 1 -ErrorAction SilentlyContinue
+            # Increasing depth to find drivers in deeper subfolders
+            $check = Get-ChildItem -Path $path -Filter $libSycl -Recurse -Depth 3 -ErrorAction SilentlyContinue
             if ($check) { $foundSycl = $true; Write-Host "[OK]  $libSycl found in: $($check[0].DirectoryName)" }
         }
         if (-not $foundLZero) {
-            $check = Get-ChildItem -Path $path -Filter $libLZero -Recurse -Depth 1 -ErrorAction SilentlyContinue
+            $check = Get-ChildItem -Path $path -Filter $libLZero -Recurse -Depth 3 -ErrorAction SilentlyContinue
             if ($check) { $foundLZero = $true; Write-Host "[OK]  $libLZero found in: $($check[0].DirectoryName)" }
         }
     }
@@ -111,7 +112,11 @@ if ($apiUp) {
         $jsonStr = $showRes | ConvertTo-Json -Depth 10
         
         if ($jsonStr -like "*gpu*" -or $jsonStr -like "*intel*" -or $jsonStr -like "*vulkan*") {
-            Write-Host "[SUCCESS] GPU acceleration appears to be ACTIVE for '$modelName'!" -ForegroundColor Green
+            if ($jsonStr -like "*vulkan*") {
+                Write-Host "[SUCCESS] GPU acceleration is ACTIVE (via Vulkan fallback)!" -ForegroundColor Green
+            } else {
+                Write-Host "[SUCCESS] GPU acceleration is ACTIVE (via Intel SYCL/Level Zero)!" -ForegroundColor Green
+            }
         } else {
             Write-Host "[WARNING] No GPU layers detected for '$modelName'. Likely running on CPU." -ForegroundColor Yellow
             Write-Host "          Try setting OLLAMA_VULKAN=1 in your environment if Intel SYCL fails."

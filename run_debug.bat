@@ -11,17 +11,17 @@ title OllamaOpt Clean Start (Debug)
 
 cd /d "%~dp0"
 
-echo.
+
 echo ======================================================
 echo OllamaOpt Clean Start (Debug)
 echo ======================================================
-echo.
+
 echo This script will:
 echo  1. Kill all Ollama and Python processes
 echo  2. Wait for port 11434 to be released
 echo  3. Start Ollama with GPU optimization
 echo  4. Run diagnostics
-echo.
+
 
 REM Step 1: Kill all related processes
 echo [STEP 1] Terminating old processes...
@@ -47,20 +47,20 @@ echo [WARN] Port may still be occupied, trying anyway...
 if exist "%temp%\port_check.txt" del "%temp%\port_check.txt"
 
 REM Step 3: Launch pipeline
-echo.
+
 echo [STEP 3] Launching OllamaOpt pipeline...
-echo.
+
 call start_dev.bat
 
 REM Add a delay to allow the server to start
-echo.
+
 echo [INFO] Waiting 5 seconds for the server to initialize...
 ping localhost -n 6 >nul
 
 REM Step 4: Run diagnostics
-echo.
+
 echo [STEP 4] Running GPU diagnostics...
-echo.
+
 powershell.exe -ExecutionPolicy Bypass -File "gpu_diagnostics.ps1"
 
 

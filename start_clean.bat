@@ -25,12 +25,12 @@ for /f "tokens=1-3 delims=:." %%a in ("%TIME%") do (
 )
 set TS=%YYYY%%MM%%DD%_%HH%%MI%%SS%
 
-echo.
+
 echo ================================================
 echo  OllamaOpt - Clean Reset
 echo  %TS%
 echo ================================================
-echo.
+
 
 REM =====================================================
 REM 1) Stop Ollama (graceful)
@@ -96,16 +96,16 @@ REM rmdir /s /q "%USERPROFILE%\.ollama"
 REM =====================================================
 REM DONE
 REM =====================================================
-echo.
+
 echo ================================================
 echo  CLEAN RESET COMPLETE
 echo ================================================
-echo.
+
 echo Logs archived under:
 echo   %ARCHIVE_ROOT%
-echo.
+
 echo Press any key to start the dev environment...
-echo.
+
 
 endlocal
 pause
