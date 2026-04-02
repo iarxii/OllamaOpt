@@ -1,38 +1,49 @@
-# OllamaOpt - GPU Offload Troubleshooting
+# OllamaOpt - Unified Intel AI Optimizer
 
-## Problem
+This repository provides tools and scripts to optimize **Ollama** and **Local LLMs** on **Intel AI PCs** (Intel Core Ultra processors). It enables a multi-tier acceleration strategy leveraging the **NPU**, **GPU**, and **CPU**.
 
-GPU offload is not working for the local LLM. The model is running entirely on the CPU.
+## 🚀 Acceleration Tiers
 
-## Diagnostics
+| Tier | Engine | Hardware | Best For | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Tier 1** | **NPU (AI Boost)** | Intel Core Ultra (LNL, MTL, ARL) | Ultra-efficiency, DeepSeek-R1-7B, Llama-3.2 | **Recommended** |
+| **Tier 2** | **GPU (Vulkan)** | Intel Arc / Iris Xe Graphics | Large models, General compatibility | Experimental |
+| **Tier 3** | **CPU (Default)** | All Intel Processors | Robustness / Fallback | Stable |
 
-The `gpu_diagnostics.ps1` script was run to analyze the state of the GPU, drivers, and Ollama configuration. The results showed that critical Intel compute libraries are missing:
+## 🛠️ Getting Started
 
-- **SYCL support (igcsycl.dll):** NOT FOUND
-- **Level Zero support (ze_intel_gpu.dll):** NOT FOUND
+### 1. Run Diagnostics
+Check your hardware readiness, driver versions, and compute libraries.
+```cmd
+run_gpu_diagnostics.bat
+```
+*Note: The script now automatically detects **Arrow Lake**, **Meteor Lake**, and **Lunar Lake** generations.*
 
-This indicates that the installed Intel graphics driver is either not the correct version or the installation is incomplete. These libraries are essential for GPU compute and offload.
+### 2. Launch Optimized Models
+Use the "Smart Launcher" to automatically pick the best acceleration tier for your hardware and model.
+```cmd
+run_intel_optimized.bat deepseek-r1:7b
+```
 
-## Solution
+## 🔋 NPU Optimization (Tier 1)
+For the highest performance and lowest power usage, we utilize the **IPEX-LLM** NPU-optimized build.
+- **Requirements**: NPU Driver **32.0.100.3104+**.
+- **Supported Models**: Meta-Llama-3.2, DeepSeek-R1 (1.5B/7B).
+- **Guide**: See [NPU_QUICKSTART.md](docs/NPU_QUICKSTART.md).
 
-The recommended solution is to perform a clean installation of the latest Intel graphics drivers.
+## 🛠️ GPU Recovery (Tier 2)
+If your Intel GPU is not properly offloading, the project includes a **Vulkan** fallback.
+- **Quick Fix**: Run `run_intel_optimized.bat` with any model; it will automatically set `OLLAMA_VULKAN=1` if Tier 1 is unavailable.
+- **Drivers**: If `igcsycl.dll` or `ze_intel_gpu.dll` are missing, perform a clean driver installation. See [Solution Section](#solution).
 
-### Steps
+---
 
-1.  **Download the Intel Driver & Support Assistant (DSA)**
-    -   [https://www.intel.com/content/www/us/en/support/detect.html](https://www.intel.com/content/www/us/en/support/detect.html)
-2.  **Perform a Clean Installation**
-    -   It is highly recommended to first uninstall the existing Intel graphics driver from **Windows Apps & Features**.
-    -   Run the Intel DSA to download and install the latest drivers.
-3.  **Reboot**
-    -   After the driver installation is complete, reboot your system.
-4.  **Restart the Ollama Server**
-    -   Run the `start_clean.bat` script to clear any old configurations.
-    -   Run the `start_dev.bat` script to start the Ollama server with the new drivers.
-5.  **Verify the Fix**
-    -   Run the `gpu_diagnostics.ps1` script again to confirm that the critical libraries are found and that GPU offload is active.
+## 🔧 Solution: Clean Driver Installation
+If diagnostics show "NOT FOUND" for critical libraries:
+1.  **Download Intel DSA**: [Intel Support Assistant](https://www.intel.com/content/www/us/en/support/detect.html).
+2.  **Clean Uninstall**: Remove existing graphics drivers from Windows Apps & Features.
+3.  **Install & Reboot**: Install the latest Arc drivers and restart.
+4.  **Verify**: Run `run_gpu_diagnostics.bat` again.
 
-## Additional Notes
-
--   The `gpu_diagnostics.ps1` script was updated to include checks for these critical libraries.
--   The model used for testing was changed to `qwen:0.5b` for faster analysis. If this model is not present, you can pull it by running `ollama pull qwen:0.5b`.
+---
+*Powered by Intel Core Ultra & OllamaOpt*
