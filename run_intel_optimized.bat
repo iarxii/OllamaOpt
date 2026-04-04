@@ -63,9 +63,10 @@ if "%BLOB_PATH%"=="" (
 )
 
 echo [SUCCESS] Found Ollama model at: !BLOB_PATH!
-echo Starting NPU Engine...
+echo Starting NPU-Accelerated Conversation Mode...
+echo (Type your message and press Enter. Use Ctrl+C to exit.)
 pushd "%NPU_PATH%"
-llama-cli-npu.exe -m "!BLOB_PATH!" -n 128 --prompt "Hi, how are you today?"
+llama-cli-npu.exe -m "!BLOB_PATH!" --color -cnv
 set "NPU_EXIT_CODE=%errorlevel%"
 popd
 
