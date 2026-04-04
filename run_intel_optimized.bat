@@ -3,13 +3,44 @@ setlocal enabledelayedexpansion
 title OllamaOpt - Optimized Intel AI Launcher
 
 set "MODEL=%~1"
-if "%MODEL%"=="" set "MODEL=deepseek-r1:7b"
+set "FORCE_DEVICE=%~2"
+if "%MODEL%"=="" set "MODEL=llama3.2:3b"
 
 echo ================================================
 echo  OllamaOpt - Multi-Tier Intel Accelerator
 echo ================================================
 echo Model Target: %MODEL%
+
+REM 0. Smart Routing Analysis
+set "SUGGESTED_TIER=NPU"
+if /i "!FORCE_DEVICE!"=="--force-gpu" (
+    echo [USER] Forcing GPU Accelerator...
+    set "SUGGESTED_TIER=GPU"
+    goto hardware_detect
+)
+if /i "!FORCE_DEVICE!"=="--force-npu" (
+    echo [USER] Forcing NPU Accelerator...
+    set "SUGGESTED_TIER=NPU"
+    goto hardware_detect
+)
+
+echo [INFO] Analyzing model for optimal accelerator...
+ollama show "%MODEL%" --modelfile > model_info.tmp 2>nul
+if %errorlevel% NEQ 0 (
+    echo [WARN] Could not analyze model via Ollama. Defaulting to NPU tier.
+) else (
+    findstr /i "3b" model_info.tmp >nul && set "SUGGESTED_TIER=NPU"
+    findstr /i "1b" model_info.tmp >nul && set "SUGGESTED_TIER=NPU"
+    findstr /i "7b" model_info.tmp >nul && set "SUGGESTED_TIER=GPU"
+    findstr /i "8b" model_info.tmp >nul && set "SUGGESTED_TIER=GPU"
+    findstr /i "9b" model_info.tmp >nul && set "SUGGESTED_TIER=GPU"
+    findstr /i "14b" model_info.tmp >nul && set "SUGGESTED_TIER=GPU"
+    del model_info.tmp
+)
+echo [SUGGEST] Optimal Device for %MODEL% is !SUGGESTED_TIER!
 echo:
+
+:hardware_detect
 
 REM 1. Hardware Detection
 echo [INFO] Detect environment...
@@ -39,6 +70,10 @@ echo        Defaulting to Arrow Lake ^(ARL^) for Ultra 7 2xx series...
 set "IPEX_LLM_NPU_ARL=1"
 
 :npu_check
+if "!SUGGESTED_TIER!"=="GPU" (
+    echo [SKIP] Routing to GPU for performance (Model > 3.2B).
+    goto gpu_fallback
+)
 echo:
 REM 2. Tier 1: NPU (Accelerated llama-cpp)
 set "NPU_PATH=docs\utils\llama-cpp-ipex-llm-2.3.0b20250424-win-npu"

@@ -179,6 +179,32 @@ if ($apiUp) {
 } else {
     Write-Host "[INFO] 4. Skipping GPU offload analysis (Server not running)."
 }
+# -------------------------------------------------------------------
+# 5) Accelerator Memory & Utilization (NPU + iGPU)
+# -------------------------------------------------------------------
+Write-Host "[INFO] 5. Reporting Accelerator Performance..."
+
+$gpuCounters = Get-Counter -Counter "\GPU Process Memory(*)\Local Usage" -ErrorAction SilentlyContinue
+if ($gpuCounters) {
+    $totalGpuMem = 0
+    foreach ($sample in $gpuCounters.CounterSamples) {
+        $totalGpuMem += $sample.CookedValue
+    }
+    $totalGpuMemMB = [math]::Round($totalGpuMem / 1MB, 2)
+    Write-Host "  - iGPU Active Memory: $totalGpuMemMB MB"
+}
+
+$npuPerf = Get-Counter -Counter "\NPU(*)\Utilization Percentage" -ErrorAction SilentlyContinue
+if ($npuPerf) {
+    foreach ($sample in $npuPerf.CounterSamples) {
+        $val = [math]::Round($sample.CookedValue, 2)
+        Write-Host "  - NPU Utilization:    $val %"
+    }
+} else {
+    Write-Host "  - NPU Utilization:    [N/A] (No active workload or driver counter hidden)"
+}
+
+Write-Host ""
 
 Write-Host ""
 Write-Host "================================================"

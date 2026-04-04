@@ -23,6 +23,17 @@ This guide provides a comprehensive list of commands for managing and interactin
 | `ollama create <name> -f <file>` | Create a new model from a `Modelfile`. | `ollama create my-model -f ./Modelfile` |
 | `ollama push <model>` | Push a custom model to the Ollama registry (requires login). | `ollama push user/model` |
 
+## 🚀 Optimized Multi-Tier Accelerator (Intel)
+
+Use the automated launcher for the best experience on your AI PC:
+
+| Command | Description |
+| :--- | :--- |
+| **`./run_intel_optimized.bat <model>`** | **Auto-Booster**: Automatically selects NPU (<=3.2B) or GPU (>3.2B) for max speed. |
+| `./run_intel_optimized.bat <model> --force-gpu` | Force the model onto the **iGPU/dGPU** (Vulkan Power Tier). |
+| `./run_intel_optimized.bat <model> --force-npu` | Force the model onto the **NPU** (Efficiency AI Boost Tier). |
+| `powershell -File gpu_diagnostics.ps1` | Report concurrent NPU and iGPU utilization metrics. |
+
 ## ⚙️ Intel Optimization Environment Variables
 
 When using the `run_intel_optimized.bat` launcher, it automatically sets these for you, but you can also use them manually:
