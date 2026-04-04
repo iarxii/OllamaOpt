@@ -73,14 +73,14 @@ $cpuName = (Get-CimInstance Win32_Processor).Name
 Write-Host "  - CPU: $cpuName"
 
 $ipexFlags = ""
-if ($cpuName -match "Ultra\s+[12]\d\d[VHKU]") {
-    if ($cpuName -match "Ultra\s+2\d\d[V]") {
+if ($cpuName -match "Ultra\s+(\d\s+)?([12]\d\d[VHKU])") {
+    if ($cpuName -match "Ultra\s+(\d\s+)?2\d\d[V]") {
         Write-Host "    [MATCH] Lunar Lake (Series 2) detected." -ForegroundColor Cyan
         $ipexFlags = "IPEX_LLM_NPU_DISABLE_COMPILE_OPT=1"
-    } elseif ($cpuName -match "Ultra\s+2\d\d[HKU]") {
+    } elseif ($cpuName -match "Ultra\s+(\d\s+)?2\d\d[HKU]") {
         Write-Host "    [MATCH] Arrow Lake (Series 2) detected." -ForegroundColor Cyan
         $ipexFlags = "IPEX_LLM_NPU_ARL=1"
-    } elseif ($cpuName -match "Ultra\s+1\d\d[H]") {
+    } elseif ($cpuName -match "Ultra\s+(\d\s+)?1\d\d[H]") {
         Write-Host "    [MATCH] Meteor Lake (Series 1) detected." -ForegroundColor Cyan
         $ipexFlags = "IPEX_LLM_NPU_MTL=1"
     }
