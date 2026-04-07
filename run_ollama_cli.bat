@@ -1,6 +1,7 @@
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
+cd /d "%~dp0"
 
 set PYTHONUTF8=1
 set PYTHONIOENCODING=utf-8
@@ -13,6 +14,7 @@ echo.
 REM ================================================================
 REM  Step 1 -- Logging setup
 REM ================================================================
+echo [Step 1/6] Setting up logging...
 if not exist "logs" mkdir "logs"
 set "CLI_LOG=logs\cli_launch.log"
 echo [%DATE% %TIME%] === OllamaOpt CLI Launch === >> "%CLI_LOG%"
@@ -37,7 +39,7 @@ REM ================================================================
 echo [Step 3/6] Activating virtual environment...
 if exist ".venv\Scripts\activate.bat" (
     call ".venv\Scripts\activate.bat"
-    echo [%DATE% %TIME%] venv activated: .venv\Scripts\activate.bat >> "%CLI_LOG%"
+    echo [%DATE% %TIME%] venv activated >> "%CLI_LOG%"
 ) else (
     echo [WARN] .venv not found -- using system Python
     echo [%DATE% %TIME%] WARN: .venv not found, using system Python >> "%CLI_LOG%"
@@ -69,41 +71,41 @@ echo [%DATE% %TIME%] --- Backend detection start --- >> "%CLI_LOG%"
 
 REM ----------------------------------------------------------------
 REM  Tier 0 -- Is an Ollama server already running on port 11434?
-REM  If yes, adopt it as-is without touching anything.
+REM  Use inline PowerShell for a clean HTTP probe -- no Python lag.
 REM ----------------------------------------------------------------
-python -c "import requests; requests.get('http://localhost:11434/api/tags', timeout=2)" >nul 2>&1
+powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -Command ^
+  "try { $null = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:11434/api/tags -TimeoutSec 2 -Proxy $null; exit 0 } catch { exit 1 }" ^
+  >nul 2>&1
 if not errorlevel 1 (
     set "BACKEND_MODE=existing"
     set "BACKEND_LABEL=Existing Server"
-    echo [OK] Using already-running Ollama server (no restart)
-    echo [%DATE% %TIME%] Backend: EXISTING -- port 11434 already responding, no restart needed >> "%CLI_LOG%"
+    echo [OK] Adopting existing Ollama server on port 11434
+    echo [%DATE% %TIME%] Backend: EXISTING >> "%CLI_LOG%"
     goto backend_ready
 )
 
 REM ----------------------------------------------------------------
 REM  Tier 1 -- Port is free; try to start the Intel GPU pipeline
 REM ----------------------------------------------------------------
-echo [INFO] No active server found on port 11434. Trying Intel GPU pipeline...
-echo [%DATE% %TIME%] Port 11434 is free -- attempting Intel GPU pipeline >> "%CLI_LOG%"
+echo [INFO] No active server on port 11434. Trying Intel GPU pipeline...
+echo [%DATE% %TIME%] Tier 1: attempting start_pipeline_simple.bat --server-only >> "%CLI_LOG%"
 
-if exist "start_ollama_server.bat" (
-    echo [INFO] Launching start_ollama_server.bat in background (minimised^)...
-    echo [%DATE% %TIME%] Launching start_ollama_server.bat /min >> "%CLI_LOG%"
-    start "OllamaOpt GPU Server" /min cmd /c "call start_ollama_server.bat"
-    echo [INFO] Waiting for GPU pipeline to respond (up to 30s^)...
-    call run_wait_for_api.bat -MaxRetries 30
+if exist "start_pipeline_simple.bat" (
+    start "OllamaOpt Server" /min cmd /c "call start_pipeline_simple.bat --server-only"
+    echo [INFO] Waiting for GPU pipeline - up to 30s...
+    powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File "wait_for_api.ps1" -MaxRetries 30
     if not errorlevel 1 (
         set "BACKEND_MODE=gpu_pipeline"
         set "BACKEND_LABEL=Intel GPU Pipeline"
         echo [OK] Intel GPU pipeline is active
-        echo [%DATE% %TIME%] Backend: GPU_PIPELINE -- Intel GPU pipeline started and responding >> "%CLI_LOG%"
+        echo [%DATE% %TIME%] Backend: GPU_PIPELINE >> "%CLI_LOG%"
         goto backend_ready
     )
-    echo [WARN] GPU pipeline did not respond within 30 seconds
-    echo [%DATE% %TIME%] WARN: GPU pipeline timed out after 30s, falling through to Tier 2 >> "%CLI_LOG%"
+    echo [WARN] GPU pipeline did not respond within 30s
+    echo [%DATE% %TIME%] WARN: GPU pipeline timed out >> "%CLI_LOG%"
 ) else (
-    echo [WARN] start_ollama_server.bat not found -- skipping GPU pipeline tier
-    echo [%DATE% %TIME%] WARN: start_ollama_server.bat not found, GPU pipeline tier skipped >> "%CLI_LOG%"
+    echo [WARN] start_pipeline_simple.bat not found - skipping GPU tier
+    echo [%DATE% %TIME%] WARN: start_pipeline_simple.bat missing >> "%CLI_LOG%"
 )
 
 REM ----------------------------------------------------------------
@@ -112,49 +114,37 @@ REM  Print a very visible warning so the user knows GPU is not active.
 REM ----------------------------------------------------------------
 echo.
 echo ################################################################
+echo #  WARNING - FALLBACK MODE                                     #
+echo #  Starting standard Ollama WITHOUT Intel GPU optimisation.    #
+echo #  Token generation will be significantly slower.              #
 echo #                                                              #
-echo #   WARNING  --  FALLBACK MODE ACTIVE                         #
-echo #                                                              #
-echo #   Starting standard Ollama WITHOUT Intel GPU optimisation.   #
-echo #   Token generation will be SIGNIFICANTLY SLOWER than the    #
-echo #   GPU-accelerated pipeline.                                  #
-echo #                                                              #
-echo #   To restore GPU acceleration:                               #
-echo #     - Run  preflight_checks.bat   to diagnose the env       #
-echo #     - Run  start_ollama_server.bat  to start the pipeline   #
-echo #                                                              #
-echo #   Full details logged to:  logs\cli_launch.log              #
-echo #                                                              #
+echo #  To restore GPU: run preflight_checks.bat                   #
+echo #  Details: logs\cli_launch.log                               #
 echo ################################################################
 echo.
-echo [%DATE% %TIME%] WARN: entering FALLBACK mode (plain ollama serve, no GPU optimisation) >> "%CLI_LOG%"
+echo [%DATE% %TIME%] WARN: entering FALLBACK mode >> "%CLI_LOG%"
 
 where ollama >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] 'ollama' not found in PATH. Install from https://ollama.com then retry.
-    echo [%DATE% %TIME%] FATAL: 'ollama' binary not found in PATH -- fallback impossible >> "%CLI_LOG%"
+    echo [ERROR] ollama not found in PATH. Install from https://ollama.com
+    echo [%DATE% %TIME%] FATAL: ollama not in PATH >> "%CLI_LOG%"
     pause
     exit /b 1
 )
 
-echo [INFO] Starting standard ollama serve in background (minimised^)...
-echo [%DATE% %TIME%] Launching 'ollama serve' /min >> "%CLI_LOG%"
 start "Ollama Fallback" /min cmd /c "ollama serve"
-echo [INFO] Waiting for fallback Ollama to respond (up to 20s^)...
-call run_wait_for_api.bat -MaxRetries 20
+echo [INFO] Waiting for fallback Ollama - up to 20s...
+powershell -NoProfile -NoLogo -ExecutionPolicy Bypass -File "wait_for_api.ps1" -MaxRetries 20
 if errorlevel 1 (
-    echo.
-    echo [ERROR] No Ollama server could be started.
-    echo [ERROR] Run 'ollama serve' manually in a separate window, then retry.
-    echo [%DATE% %TIME%] FATAL: fallback 'ollama serve' also failed to respond within 20s >> "%CLI_LOG%"
-    echo [%DATE% %TIME%] FATAL: no backend available, aborting launch >> "%CLI_LOG%"
+    echo [ERROR] No Ollama server could be started. Run 'ollama serve' manually then retry.
+    echo [%DATE% %TIME%] FATAL: fallback also failed >> "%CLI_LOG%"
     pause
     exit /b 1
 )
 
 set "BACKEND_MODE=fallback"
-set "BACKEND_LABEL=Standard Ollama (fallback - no GPU)"
-echo [%DATE% %TIME%] Backend: FALLBACK -- standard ollama serve running, no GPU optimisation >> "%CLI_LOG%"
+set "BACKEND_LABEL=Standard Ollama - fallback, no GPU"
+echo [%DATE% %TIME%] Backend: FALLBACK >> "%CLI_LOG%"
 
 REM ================================================================
 REM  Step 6 -- Export env vars and launch Python CLI
@@ -168,22 +158,19 @@ if "%BACKEND_MODE%"=="gpu_pipeline" (
     set "OLLAMAOPT_GPU_ACTIVE=0"
 )
 
-echo [INFO] Backend mode : %BACKEND_LABEL%
-echo [INFO] GPU active   : %OLLAMAOPT_GPU_ACTIVE%
+echo.
+echo [INFO] Backend : %BACKEND_LABEL%
+echo [INFO] GPU opt : %OLLAMAOPT_GPU_ACTIVE%
+echo [%DATE% %TIME%] Backend=%BACKEND_MODE% GPU=%OLLAMAOPT_GPU_ACTIVE% >> "%CLI_LOG%"
 echo [Step 6/6] Launching OllamaOpt CLI...
 echo.
-echo [%DATE% %TIME%] OLLAMAOPT_BACKEND_MODE=%BACKEND_MODE% >> "%CLI_LOG%"
-echo [%DATE% %TIME%] OLLAMAOPT_BACKEND_LABEL=%BACKEND_LABEL% >> "%CLI_LOG%"
-echo [%DATE% %TIME%] OLLAMAOPT_GPU_ACTIVE=%OLLAMAOPT_GPU_ACTIVE% >> "%CLI_LOG%"
-echo [%DATE% %TIME%] Launching: python -m cli.ollama_cli >> "%CLI_LOG%"
 
 python -m cli.ollama_cli %*
 
 set "CLI_EXIT=%ERRORLEVEL%"
 echo.
 echo [INFO] CLI session ended
-echo [%DATE% %TIME%] CLI session ended (exit code: %CLI_EXIT%) >> "%CLI_LOG%"
-echo [%DATE% %TIME%] ================================================== >> "%CLI_LOG%"
+echo [%DATE% %TIME%] CLI exit code: %CLI_EXIT% >> "%CLI_LOG%"
 
 if exist ".venv\Scripts\activate.bat" deactivate
 pause
