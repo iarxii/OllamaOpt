@@ -67,7 +67,9 @@ class MetricsCollector:
         # Thread control
         self._stop_event = threading.Event()
         self._thread = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # RLock allows get_snapshot() to call
+        # get_average_latency() / get_latency_trend() without deadlocking on
+        # re-entry from the same thread (threading.Lock is not reentrant).
 
     def start(self):
         """Start background metrics collection"""
@@ -81,6 +83,27 @@ class MetricsCollector:
         self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=2)
+
+    def collect_once(self):
+        """Collect model info, hardware info, and system metrics synchronously.
+
+        Runs a single pass with no background thread and no latency probe.
+        Use this instead of start() when live metrics are not needed —
+        it populates the snapshot so the dashboard can display static
+        initialisation info without continuously pinging Ollama.
+        """
+        try:
+            self._fetch_model_info()
+        except Exception:
+            pass
+        try:
+            self._fetch_hardware_info()
+        except Exception:
+            pass
+        try:
+            self._gather_system_metrics()
+        except Exception:
+            pass
 
     def _collect_loop(self):
         """Main collection loop runs in background thread"""
@@ -311,11 +334,24 @@ def get_collector() -> MetricsCollector:
         _collector = MetricsCollector()
     return _collector
 
-def initialize_collector(api_base: str = "http://localhost:11434"):
-    """Initialize and start the metrics collector"""
+def initialize_collector(api_base: str = "http://localhost:11434") -> MetricsCollector:
+    """Initialize and start the metrics collector with a live background thread."""
     global _collector
     _collector = MetricsCollector(api_base)
     _collector.start()
+    return _collector
+
+
+def initialize_collector_static(api_base: str = "http://localhost:11434") -> MetricsCollector:
+    """Initialize the metrics collector with a single synchronous collection.
+
+    No background thread is started and no latency probe is fired.
+    The snapshot is populated once at call time and remains static.
+    Use this to display initialisation info without continuously pinging Ollama.
+    """
+    global _collector
+    _collector = MetricsCollector(api_base)
+    _collector.collect_once()
     return _collector
 
 def shutdown_collector():

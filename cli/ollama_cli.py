@@ -16,7 +16,7 @@ from rich.text import Text
 from rich.panel import Panel
 from rich import box
 
-from .metrics_collector import initialize_collector, get_collector, shutdown_collector
+from .metrics_collector import initialize_collector_static, get_collector, shutdown_collector
 from .dashboard import Dashboard, render_welcome_screen, LatencyChart
 from .chat_interface import ChatInterface, CommandHandler, StreamingResponseDisplay
 from .formatters import IndicatorFormatter, format_duration
@@ -58,11 +58,8 @@ class OllamaOptCLI:
                 console.print("[yellow]  Check that Ollama is running and responsive.[/yellow]")
                 return False
 
-            # Start metrics collector
-            self.collector = initialize_collector(self.api_base)
-
-            # Give it a moment to fetch initial data
-            time.sleep(0.5)
+            # Collect model/hardware info once — no background thread, no probe loop
+            self.collector = initialize_collector_static(self.api_base)
 
             # Initialize chat interface
             self.chat = ChatInterface(self.api_base)
@@ -93,20 +90,24 @@ class OllamaOptCLI:
             return False
 
     def show_intro(self):
-        """Show welcome screen — does NOT clear the terminal so init messages stay visible."""
+        """Show a simple, plain-text welcome panel."""
         snapshot = self.collector.get_snapshot()
         tier = snapshot["hardware"]["tier"]
         model = snapshot["model"]["name"]
+        size_gb = snapshot["model"]["size_gb"]
 
-        # Compact header — keeps screen real estate manageable
-        header = Text()
-        header.append(OLLAMA_OPT_COMPACT, style="cyan")
-        header.append("\n")
-        header.append(f"  {TIER_ICONS.get(tier, '❓')} Hardware: {tier.upper()}  |  ", style="white")
-        header.append(f"Model: {model}\n", style="cyan")
+        lines = Text()
+        lines.append("  OllamaOpt CLI\n", style="cyan bold")
+        lines.append("  " + "-" * 40 + "\n", style="bright_black")
+        lines.append(f"  Model    : ", style="white")
+        lines.append(f"{model}  ({size_gb:.1f} GB)\n", style="cyan")
+        lines.append(f"  Hardware : ", style="white")
+        lines.append(f"{tier.upper()}\n", style="cyan")
+        lines.append("  " + "-" * 40 + "\n", style="bright_black")
+        lines.append("  /help  /models  /switch  /stats  /clear  /exit\n", style="dim white")
 
-        console.print(header)
-        render_welcome_screen()
+        console.print(Panel(lines, border_style="cyan", padding=(0, 1)))
+        console.print()
 
     def render_dashboard_header(self):
         """Render the dashboard header with metrics"""
@@ -115,16 +116,8 @@ class OllamaOptCLI:
 
     def get_user_input(self) -> str:
         """Get user input with styled prompt"""
-        # Display input prompt
-        snapshot = self.collector.get_snapshot()
-        gen_status = "◐" if False else "▸"
-
-        prompt_text = Text()
-        prompt_text.append(f"{gen_status} ", style="cyan bold")
-        prompt_text.append("You: ", style="cyan")
-
         try:
-            user_input = Prompt.ask(prompt_text, console=console)
+            user_input = Prompt.ask("[cyan]▸ You[/cyan]", console=console)
             return user_input.strip()
         except KeyboardInterrupt:
             return "/exit"
@@ -191,10 +184,14 @@ class OllamaOptCLI:
         if not user_input:
             return True
 
-        # Check if it's a command
+        # Exit commands must be checked first — handle_command() returns False
+        # for /exit and /quit (to signal exit), so we cannot rely on its return
+        # value to catch them; they would fall through to the chat path otherwise.
+        if user_input.lower() in ["/exit", "/quit"]:
+            return False
+
+        # Other slash commands
         if self.command_handler.handle_command(user_input):
-            if user_input.lower() in ["/exit", "/quit"]:
-                return False
             return True
 
         # Regular chat message
@@ -230,9 +227,6 @@ class OllamaOptCLI:
 
         try:
             while self.running:
-                # Render header with live metrics
-                console.print(self.dashboard.render_metrics())
-
                 # Get user input
                 user_input = self.get_user_input()
 
