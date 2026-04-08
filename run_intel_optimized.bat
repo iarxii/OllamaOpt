@@ -79,9 +79,17 @@ set "IPEX_FLAG="
 REM Regex-style matches for Intel generations
 echo "%CPU_NAME%" | findstr /i "Ultra" >nul || goto no_ultra
 
+REM --- FIX: Split multi-pattern findstr calls into separate per-pattern calls.
+REM     "2..H 2..U" as a single regex searches for the literal substring
+REM     "2xxH 2xxU" and never matches a real CPU name (e.g. "Ultra 7 255U").
+REM     Each pattern now gets its own findstr call. Lower-priority patterns are
+REM     guarded with delayed-expansion checks so the first (highest-priority)
+REM     match always wins and cannot be overwritten by a later match.
 echo "%CPU_NAME%" | findstr /r "2..V" >nul && set "IPEX_FLAG=IPEX_LLM_NPU_DISABLE_COMPILE_OPT=1"
-echo "%CPU_NAME%" | findstr /r "2..H 2..U" >nul && set "IPEX_FLAG=IPEX_LLM_NPU_ARL=1"
-echo "%CPU_NAME%" | findstr /r "1..H 1..U" >nul && set "IPEX_FLAG=IPEX_LLM_NPU_MTL=1"
+echo "%CPU_NAME%" | findstr /r "2..H" >nul && if "!IPEX_FLAG!"=="" set "IPEX_FLAG=IPEX_LLM_NPU_ARL=1"
+echo "%CPU_NAME%" | findstr /r "2..U" >nul && if "!IPEX_FLAG!"=="" set "IPEX_FLAG=IPEX_LLM_NPU_ARL=1"
+echo "%CPU_NAME%" | findstr /r "1..H" >nul && if "!IPEX_FLAG!"=="" set "IPEX_FLAG=IPEX_LLM_NPU_MTL=1"
+echo "%CPU_NAME%" | findstr /r "1..U" >nul && if "!IPEX_FLAG!"=="" set "IPEX_FLAG=IPEX_LLM_NPU_MTL=1"
 
 :no_ultra
 if "%IPEX_FLAG%"=="" (

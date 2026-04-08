@@ -23,8 +23,9 @@ set /a _port_try=1
 :port_loop
     echo DEBUG: loop iteration %_port_try%
     netstat -ano | findstr ":11434" >nul
-    echo DEBUG: findstr exitlevel=%errorlevel%
-    if errorlevel 1 (
+    set "_fr=!ERRORLEVEL!"
+    echo DEBUG: findstr exitlevel=!_fr!
+    if !_fr! EQU 1 (
         echo [OK] Port 11434 is free
         goto port_ready
     )
