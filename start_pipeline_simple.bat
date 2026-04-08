@@ -4,6 +4,14 @@ title OllamaOpt - Single Pipeline Runner
 
 cd /d "%~dp0"
 
+REM ============================================================
+REM  --server-only flag: run Steps 1-4 only (no benchmarks)
+REM  Used by run_ollama_cli.bat to start the GPU server without
+REM  launching the full benchmark/validation pipeline.
+REM ============================================================
+set "SERVER_ONLY=0"
+if /i "%~1"=="--server-only" set "SERVER_ONLY=1"
+
 echo =====================================================
 echo OllamaOpt - Single Pipeline Runner
 echo =====================================================
@@ -42,6 +50,8 @@ set "ZES_ENABLE_SYSMAN=1"
 set "SYCL_CACHE_PERSISTENT=1"
 set "OLLAMA_DEBUG=1"
 set "OLLAMA_LOG_LEVEL=debug"
+set "OLLAMA_INTEL_GPU=true"
+set "OLLAMA_VULKAN=1"
 
 rem Start server in background and redirect stdout/stderr
 start "OllamaServer_bg" /b cmd /c "ollama serve 1> "%LOG_DIR%\ollama-server.log" 2> "%LOG_DIR%\ollama-debug.log""
@@ -53,6 +63,12 @@ powershell -NoProfile -Command "for ($i=0;$i -lt 30;$i++) { try { Invoke-WebRequ
 if errorlevel 1 (
     echo [ERROR] Ollama API did not respond; see %LOG_DIR%\wait_for_api.txt
     exit /b 1
+)
+
+if "%SERVER_ONLY%"=="1" (
+    echo [INFO] --server-only mode: server is up, exiting pipeline here.
+    echo [INFO] Connect via run_ollama_cli.bat or ollama run ^<model^>
+    exit /b 0
 )
 
 echo [STEP 5] Run benchmark (auto-skip upload) and capture output

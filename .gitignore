@@ -56,6 +56,24 @@ Thumbs.db
 Desktop.ini
 
 # ==========================================
+# Windows reserved device names
+# These are virtual devices that always appear to exist on Windows
+# and cannot be deleted. Git will fail with "invalid path" if it
+# tries to stage them.
+# ==========================================
+/nul
+/con
+/prn
+/aux
+/com1
+/com2
+/com3
+/com4
+/lpt1
+/lpt2
+/lpt3
+
+# ==========================================
 # Project-specific
 # ==========================================
 # None currently, but extend as needed
