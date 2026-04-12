@@ -1,0 +1,3 @@
+[submodule "docs/research/rotorquant"]
+	path = docs/research/rotorquant
+	url = https://github.com/scrya-com/rotorquant.git

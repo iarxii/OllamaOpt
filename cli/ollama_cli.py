@@ -287,9 +287,14 @@ class OllamaOptCLI:
         # Record in history
         self.chat.add_message("user", user_input)
 
-        # Generate response with streaming
+        # Generate response with streaming (context-aware)
         try:
-            response_gen = self.chat.stream_response(user_input)
+            # Check if integration components are available
+            if self.chat.retriever is not None or self.chat.context_builder is not None:
+                response_gen = self.chat.stream_with_context(user_input)
+            else:
+                # Fallback to basic streaming if integration failed to initialize
+                response_gen = self.chat.stream_response(user_input)
             response_text = self.process_response_streaming(response_gen)
 
             # Record response in history
