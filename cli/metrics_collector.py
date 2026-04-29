@@ -160,24 +160,40 @@ class MetricsCollector:
 
             # Check for GPU using psutil
             gpu_found = False
+            npu_found = False
             try:
                 import GPUtil
                 gpus = GPUtil.getGPUs()
                 gpu_found = len(gpus) > 0
             except ImportError:
-                # Fallback: check for common GPU model files
-                try:
-                    result = subprocess.run(
-                        "wmic path win32_videocontroller get name",
-                        shell=True,
-                        capture_output=True,
-                        text=True,
-                        timeout=2
-                    )
-                    output = result.stdout.lower()
+                pass
+                
+            # Fallback/Intel/NPU detection
+            try:
+                result = subprocess.run(
+                    "wmic path win32_videocontroller get name",
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=2
+                )
+                output = result.stdout.lower()
+                if not gpu_found:
                     gpu_found = "intel" in output or "nvidia" in output or "amd" in output
-                except Exception:
-                    pass
+                
+                # NPU detection (Intel AI Boost / Generic NPU)
+                result_npu = subprocess.run(
+                    'wmic path Win32_PnPEntity where "name like \'%NPU%\' or name like \'%AI Boost%\'" get name',
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=2
+                )
+                npu_output = result_npu.stdout.lower()
+                if "npu" in npu_output or "ai boost" in npu_output:
+                    npu_found = True
+            except Exception:
+                pass
 
             # Get CPU model
             try:
@@ -191,9 +207,12 @@ class MetricsCollector:
 
             # Determine tier
             with self._lock:
-                if gpu_found:
+                self.hardware_info.gpu_detected = gpu_found
+                self.hardware_info.npu_detected = npu_found
+                if npu_found:
+                    self.hardware_info.tier = "npu"
+                elif gpu_found:
                     self.hardware_info.tier = "gpu"
-                    self.hardware_info.gpu_detected = True
                 else:
                     self.hardware_info.tier = "cpu"
         except Exception:
@@ -227,22 +246,72 @@ class MetricsCollector:
         try:
             cpu = psutil.cpu_percent(interval=0.1)
             mem = psutil.virtual_memory()
-
-            # Real NPU/iGPU monitoring requires Intel Level Zero or
-            # intel_npu_acceleration_library.  Until wired in, report 0.0
-            # with availability=False so the frontend can show "N/A"
-            # instead of misleading random values.
+            
+            # Default values
             npu_val = 0.0
             igpu_val = 0.0
+            vram_total = 0.0
+            vram_used = 0.0
+            
+            # 1. Try NVIDIA (GPUtil)
+            try:
+                import GPUtil
+                gpus = GPUtil.getGPUs()
+                if gpus:
+                    gpu = gpus[0]
+                    igpu_val = gpu.load * 100
+                    vram_total = gpu.memoryTotal / 1024
+                    vram_used = gpu.memoryUsed / 1024
+            except Exception:
+                pass
+            
+            # 2. Try Intel/Universal Windows Counters (if igpu_val still 0)
+            if igpu_val == 0:
+                try:
+                    # Faster way to get GPU util without full Get-Counter overhead
+                    # We look for Compute or 3D engines
+                    cmd = 'powershell "Get-WmiObject Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine | Where-Object { $_.Name -like \'*engtype_Compute*\' -or $_.Name -like \'*engtype_3D*\' } | Select-Object -ExpandProperty UtilizationPercentage"'
+                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=1)
+                    vals = [int(v) for v in result.stdout.strip().split('\n') if v.strip() and v.strip().isdigit()]
+                    if vals:
+                        igpu_val = max(vals)
+                        
+                    # Get Shared GPU Memory (VRAM)
+                    cmd_vram = 'powershell "Get-WmiObject Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapterMemory | Select-Object -ExpandProperty SharedUsage"'
+                    result_vram = subprocess.run(cmd_vram, shell=True, capture_output=True, text=True, timeout=1)
+                    vram_vals = [int(v) for v in result_vram.stdout.strip().split('\n') if v.strip() and v.strip().isdigit()]
+                    if vram_vals:
+                        vram_used = max(vram_vals) / (1024**3)
+                        # Estimate total shared (usually half of RAM)
+                        vram_total = mem.total / 2 / (1024**3)
+                except Exception:
+                    pass
+
+            # 3. Try NPU (Intel AI Boost / Generic NPU)
+            try:
+                # NPU counters are often under 'NPU' or 'Intel(R) AI Boost'
+                cmd_npu = 'powershell "Get-WmiObject Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine | Where-Object { $_.Name -like \'*npu*\' } | Select-Object -ExpandProperty UtilizationPercentage"'
+                result_npu = subprocess.run(cmd_npu, shell=True, capture_output=True, text=True, timeout=1)
+                npu_vals = [int(v) for v in result_npu.stdout.strip().split('\n') if v.strip() and v.strip().isdigit()]
+                if npu_vals:
+                    npu_val = max(npu_vals)
+            except Exception:
+                pass
 
             with self._lock:
                 self.system.cpu_percent = cpu
                 self.system.memory_percent = mem.percent
-                # VRAM estimation
-                self.system.vram_total_gb = mem.total / (1024**3)
-                self.system.vram_used_gb = mem.used / (1024**3)
-                self.system.npu_percent = npu_val
-                self.system.igpu_percent = igpu_val
+                
+                # If we couldn't get specific VRAM, fallback to system-wide
+                if vram_total == 0:
+                    self.system.vram_total_gb = mem.total / (1024**3)
+                    self.system.vram_used_gb = mem.used / (1024**3)
+                else:
+                    self.system.vram_total_gb = vram_total
+                    self.system.vram_used_gb = vram_used
+                    
+                self.system.npu_percent = float(npu_val)
+                self.system.igpu_percent = float(igpu_val)
         except Exception:
             pass
 
@@ -327,9 +396,9 @@ class MetricsCollector:
                     "vram_total_gb": self.system.vram_total_gb,
                     "vram_percent": (self.system.vram_used_gb / self.system.vram_total_gb * 100) if self.system.vram_total_gb > 0 else 0,
                     "npu_percent": self.system.npu_percent,
-                    "npu_available": self.system.npu_percent > 0,
+                    "npu_available": self.hardware_info.npu_detected,
                     "igpu_percent": self.system.igpu_percent,
-                    "igpu_available": self.system.igpu_percent > 0,
+                    "igpu_available": self.hardware_info.gpu_detected,
                 },
                 "session": {
                     "message_count": self.message_count,

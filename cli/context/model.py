@@ -31,11 +31,11 @@ TRUST_ORDER = {
 class ContextBudget:
     """Token/character budget for context segments."""
     system_chars: int = 400
-    retrieved_docs_chars: int = 1500    # reduced to balance KV cache
-    tool_output_chars: int = 800
-    memory_chars: int = 400
-    history_chars: int = 800
-    total_hard_cap_chars: int = 3000    # strict balanced ceiling for local models
+    retrieved_docs_chars: int = 600    # Reduced for Lean Mode
+    tool_output_chars: int = 400
+    memory_chars: int = 200
+    history_chars: int = 600
+    total_hard_cap_chars: int = 1800    # strict balanced ceiling for local models
 
 
 # ── Provider-Aware Budget Presets ────────────────────────────────────────────
