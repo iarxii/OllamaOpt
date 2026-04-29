@@ -30,12 +30,36 @@ TRUST_ORDER = {
 @dataclass
 class ContextBudget:
     """Token/character budget for context segments."""
-    system_chars: int = 500
-    retrieved_docs_chars: int = 2000    # NPU path: keep small
-    tool_output_chars: int = 1000
-    memory_chars: int = 500
-    history_chars: int = 1000
-    total_hard_cap_chars: int = 3500    # strict ceiling for NPU 960-token limit
+    system_chars: int = 400
+    retrieved_docs_chars: int = 1500    # reduced to balance KV cache
+    tool_output_chars: int = 800
+    memory_chars: int = 400
+    history_chars: int = 800
+    total_hard_cap_chars: int = 3000    # strict balanced ceiling for local models
+
+
+# ── Provider-Aware Budget Presets ────────────────────────────────────────────
+# Local models (Ollama, llama.cpp) have limited KV cache (~3B params).
+# Cloud providers (Groq, Gemini, OpenRouter) have 32K–2M context windows.
+
+LOCAL_BUDGET = ContextBudget()  # defaults above — optimized for 3B KV cache
+
+CLOUD_BUDGET = ContextBudget(
+    system_chars=1200,
+    retrieved_docs_chars=8000,
+    tool_output_chars=4000,
+    memory_chars=2000,
+    history_chars=6000,
+    total_hard_cap_chars=20000,
+)
+
+_CLOUD_PROVIDERS = {"groq", "openrouter", "gemini", "openai", "ollama_cloud"}
+
+def get_budget_for_provider(provider: str) -> ContextBudget:
+    """Select the appropriate context budget based on the active LLM provider."""
+    if provider in _CLOUD_PROVIDERS:
+        return CLOUD_BUDGET
+    return LOCAL_BUDGET
 
 
 @dataclass
@@ -57,3 +81,4 @@ class ContextPolicy:
         self.budget.history_chars = 400
         self.budget.memory_chars = 200
         self.budget.total_hard_cap_chars = 1800
+

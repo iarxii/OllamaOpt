@@ -62,13 +62,8 @@ class Retriever:
             score_threshold if score_threshold is not None else self.score_threshold
         )
 
-        # Guard: verify embedder is reachable before attempting embedding.
-        if not self.embedder.is_available():
-            logger.warning(
-                "Retriever.retrieve: Ollama embedder is not available; "
-                "returning empty results."
-            )
-            return []
+        # The availability check is handled implicitly by embed_text call below.
+        # Removing explicit is_available() call to reduce latency and avoid false negatives.
 
         query_embedding = self.embedder.embed_text(query)
         if query_embedding is None:

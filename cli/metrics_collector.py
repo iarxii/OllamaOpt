@@ -44,6 +44,8 @@ class SystemMetrics:
     memory_percent: float = 0.0
     vram_used_gb: float = 0.0
     vram_total_gb: float = 0.0
+    npu_percent: float = 0.0
+    igpu_percent: float = 0.0
 
 class MetricsCollector:
     """Background metrics collection from Ollama API and system"""
@@ -221,17 +223,26 @@ class MetricsCollector:
             pass
 
     def _gather_system_metrics(self):
-        """Gather CPU, memory, and VRAM metrics"""
+        """Gather CPU, memory, VRAM, NPU, and iGPU metrics"""
         try:
             cpu = psutil.cpu_percent(interval=0.1)
             mem = psutil.virtual_memory()
 
+            # Real NPU/iGPU monitoring requires Intel Level Zero or
+            # intel_npu_acceleration_library.  Until wired in, report 0.0
+            # with availability=False so the frontend can show "N/A"
+            # instead of misleading random values.
+            npu_val = 0.0
+            igpu_val = 0.0
+
             with self._lock:
                 self.system.cpu_percent = cpu
                 self.system.memory_percent = mem.percent
-                # VRAM estimation (total RAM * 0.7 as proxy if no dedicated GPU)
+                # VRAM estimation
                 self.system.vram_total_gb = mem.total / (1024**3)
                 self.system.vram_used_gb = mem.used / (1024**3)
+                self.system.npu_percent = npu_val
+                self.system.igpu_percent = igpu_val
         except Exception:
             pass
 
@@ -315,6 +326,10 @@ class MetricsCollector:
                     "vram_used_gb": self.system.vram_used_gb,
                     "vram_total_gb": self.system.vram_total_gb,
                     "vram_percent": (self.system.vram_used_gb / self.system.vram_total_gb * 100) if self.system.vram_total_gb > 0 else 0,
+                    "npu_percent": self.system.npu_percent,
+                    "npu_available": self.system.npu_percent > 0,
+                    "igpu_percent": self.system.igpu_percent,
+                    "igpu_available": self.system.igpu_percent > 0,
                 },
                 "session": {
                     "message_count": self.message_count,

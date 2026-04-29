@@ -104,6 +104,21 @@ class QdrantVectorStore:
             existing_names = [
                 c.name for c in self._client.get_collections().collections
             ]
+            if self.collection_name in existing_names:
+                # Check if dimensions match
+                info = self._client.get_collection(self.collection_name)
+                # handle both v1.7+ and legacy formats
+                vec_params = info.config.params.vectors
+                current_dim = getattr(vec_params, "size", 0)
+                
+                if current_dim != self.embedding_dim:
+                    logger.warning(
+                        "Dimension mismatch in collection %r: existing=%d, requested=%d. Recreating...",
+                        self.collection_name, current_dim, self.embedding_dim
+                    )
+                    self._client.delete_collection(self.collection_name)
+                    existing_names.remove(self.collection_name)
+
             if self.collection_name not in existing_names:
                 self._client.create_collection(
                     collection_name=self.collection_name,
@@ -118,7 +133,7 @@ class QdrantVectorStore:
                     self.embedding_dim,
                 )
             else:
-                logger.debug("Collection %r already exists.", self.collection_name)
+                logger.debug("Collection %r already exists with correct dimensions.", self.collection_name)
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Error ensuring collection %r: %s", self.collection_name, exc

@@ -93,7 +93,24 @@ So: **treat NPU as a bonus**, but optimize for **GPU offload + quantization + co
 
 ***
 
-## 7) A "Do This Now" Plan Using This Project
+## 7) Compiling Custom Engines like RotorQuant (Advanced)
+
+If you are optimizing KV cache memory using custom engine forks like RotorQuant (llama-cpp-turboquant), you must install Windows build prerequisites before running the installer script:
+
+> [!IMPORTANT]
+> **Install CMake (Windows Requirement)**
+> 1. **Download CMake**: Go to [https://cmake.org/download/](https://cmake.org/download/) and download the Windows x64 Installer.
+> 2. **Install CMake**: Run the installer. **CRITICAL:** During installation, select **"Add CMake to the system PATH for all users"**.
+> 3. **Restart your Terminal**: Once installed, close your current PowerShell window and open a new one so that your system recognizes the `cmake` command.
+> 4. **Run the script**:
+> ```powershell
+> cd c:\AppDev\OllamaOpt
+> .\install_rotorquant.ps1
+> ```
+
+***
+
+## 8) A "Do This Now" Plan Using This Project
 
 This `OllamaOpt` project is designed to apply these optimizations for you automatically. Instead of setting variables or running commands manually, you can use the provided scripts.
 
