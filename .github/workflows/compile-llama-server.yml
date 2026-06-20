@@ -1,0 +1,71 @@
+name: Compile and Host Llama Server Binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'The tag for the release (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libcurl4-openssl-dev
+
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.35
+        with:
+          cuda: '12.2.0' # Matches Google Colab's default environment to ensure compatibility
+
+      - name: Verify CUDA compiler (nvcc)
+        run: nvcc -V
+
+      - name: Clone Custom llama-cpp-turboquant
+        run: |
+          git clone https://github.com/johndpope/llama-cpp-turboquant.git /content/llama-cpp-turboquant
+          cd /content/llama-cpp-turboquant
+          git checkout feature/planarquant-kv-cache
+
+      - name: Compile CUDA Engine (GPU)
+        run: |
+          cd /content/llama-cpp-turboquant
+          cmake -B build-cuda -S . -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-cuda --config Release -j $(nproc)
+          cp build-cuda/bin/llama-server ${{ github.workspace }}/llama-server-cuda-ubuntu
+
+      - name: Compile CPU Engine (CPU Fallback)
+        run: |
+          cd /content/llama-cpp-turboquant
+          cmake -B build-cpu -S . -DGGML_CUDA=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-cpu --config Release -j $(nproc)
+          cp build-cpu/bin/llama-server ${{ github.workspace }}/llama-server-cpu-ubuntu
+
+      - name: Upload Binaries to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: Release ${{ github.event.inputs.release_tag }} - Engine Binaries
+          body: |
+            Precompiled custom `llama-server` engine binaries supporting RotorQuant `planar3` KV Cache compression.
+            
+            Included builds:
+            * **`llama-server-cuda-ubuntu`**: CUDA-accelerated binary compiled with CUDA 12.2 (fully compatible with Google Colab GPU runtimes).
+            * **`llama-server-cpu-ubuntu`**: CPU-only binary for fallback execution.
+          files: |
+            ${{ github.workspace }}/llama-server-cuda-ubuntu
+            ${{ github.workspace }}/llama-server-cpu-ubuntu
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
