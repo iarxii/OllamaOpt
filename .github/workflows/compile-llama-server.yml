@@ -45,7 +45,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc-12 \
             -DCMAKE_CXX_COMPILER=g++-12 \
-            -DCMAKE_CUDA_HOST_COMPILER=g++-12
+            -DCMAKE_CUDA_HOST_COMPILER=g++-12 \
+            -DCMAKE_CUDA_ARCHITECTURES="75;89"
           cmake --build build-cuda --config Release -j $(nproc)
           cp build-cuda/bin/llama-server ${{ github.workspace }}/llama-server-cuda-ubuntu
 
