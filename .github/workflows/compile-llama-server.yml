@@ -33,20 +33,20 @@ jobs:
 
       - name: Clone Custom llama-cpp-turboquant
         run: |
-          git clone https://github.com/johndpope/llama-cpp-turboquant.git /content/llama-cpp-turboquant
-          cd /content/llama-cpp-turboquant
+          git clone https://github.com/johndpope/llama-cpp-turboquant.git ${{ github.workspace }}/llama-cpp-turboquant
+          cd ${{ github.workspace }}/llama-cpp-turboquant
           git checkout feature/planarquant-kv-cache
 
       - name: Compile CUDA Engine (GPU)
         run: |
-          cd /content/llama-cpp-turboquant
+          cd ${{ github.workspace }}/llama-cpp-turboquant
           cmake -B build-cuda -S . -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build build-cuda --config Release -j $(nproc)
           cp build-cuda/bin/llama-server ${{ github.workspace }}/llama-server-cuda-ubuntu
 
       - name: Compile CPU Engine (CPU Fallback)
         run: |
-          cd /content/llama-cpp-turboquant
+          cd ${{ github.workspace }}/llama-cpp-turboquant
           cmake -B build-cpu -S . -DGGML_CUDA=OFF -DCMAKE_BUILD_TYPE=Release
           cmake --build build-cpu --config Release -j $(nproc)
           cp build-cpu/bin/llama-server ${{ github.workspace }}/llama-server-cpu-ubuntu
